@@ -48,6 +48,12 @@
 |------|------|------|
 | macOS 14+ | Apple Silicon (M1/M2/M3/M4) | [📦 下载 .dmg](https://github.com/tuwenbo0120/m-courtyard/releases/latest) |
 
+> **⚠️ macOS 安全提示**
+> 由于应用未使用 Apple 开发者证书签名，macOS 可能提示"已损坏"。安装后在终端运行以下命令即可正常使用：
+> ```bash
+> sudo xattr -rd com.apple.quarantine /Applications/M-Courtyard.app
+> ```
+
 <!-- TODO: 支持更多平台后在此添加 -->
 
 ## 核心特性

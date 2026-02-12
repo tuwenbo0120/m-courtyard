@@ -48,6 +48,12 @@ Most fine-tuning tools are CLI-heavy, cloud-dependent, or require juggling multi
 |----------|------|----------|
 | macOS 14+ | Apple Silicon (M1/M2/M3/M4) | [📦 Download .dmg](https://github.com/tuwenbo0120/m-courtyard/releases/latest) |
 
+> **⚠️ macOS Gatekeeper Notice**
+> Since the app is not signed with an Apple Developer certificate, macOS may show a "damaged" warning. After installing, run this command in Terminal to fix it:
+> ```bash
+> sudo xattr -rd com.apple.quarantine /Applications/M-Courtyard.app
+> ```
+
 <!-- TODO: Add more platforms when available -->
 
 ## Key Features

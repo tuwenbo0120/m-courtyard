@@ -60,6 +60,12 @@ jobs:
             ### What's New
             See [CHANGELOG](https://github.com/tuwenbo0120/m-courtyard/blob/main/CHANGELOG.md) for details.
 
+            ### Installation Note
+            > ⚠️ Since the app is not code-signed, macOS may show a "damaged" warning. After installing, run:
+            > ```
+            > sudo xattr -rd com.apple.quarantine /Applications/M-Courtyard.app
+            > ```
+
             ### Requirements
             - macOS 14+ (Sonoma or later)
             - Apple Silicon (M1/M2/M3/M4)
