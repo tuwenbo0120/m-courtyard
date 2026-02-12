@@ -49,10 +49,15 @@ Most fine-tuning tools are CLI-heavy, cloud-dependent, or require juggling multi
 | macOS 14+ | Apple Silicon (M1/M2/M3/M4) | [📦 Download .dmg](https://github.com/tuwenbo0120/m-courtyard/releases/latest) |
 
 > **⚠️ macOS Gatekeeper Notice**
-> Since the app is not signed with an Apple Developer certificate, macOS may show a "damaged" warning. After installing, run this command in Terminal to fix it:
-> ```bash
-> sudo xattr -rd com.apple.quarantine /Applications/M-Courtyard.app
-> ```
+> Since the app is not signed with an Apple Developer certificate, macOS may show a "damaged" warning. To fix this:
+> 1. Install the app by dragging it to `/Applications` as usual
+> 2. Open **Terminal** (Spotlight → type "Terminal")
+> 3. Run the following command:
+>    ```bash
+>    sudo xattr -rd com.apple.quarantine /Applications/M-Courtyard.app
+>    ```
+> 4. Enter your **Mac login password** when prompted (the password won't be visible as you type — this is normal)
+> 5. Done! Now open M-Courtyard from Applications and it will launch normally
 
 <!-- TODO: Add more platforms when available -->
 

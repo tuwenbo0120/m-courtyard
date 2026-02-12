@@ -61,10 +61,14 @@ jobs:
             See [CHANGELOG](https://github.com/tuwenbo0120/m-courtyard/blob/main/CHANGELOG.md) for details.
 
             ### Installation Note
-            > ⚠️ Since the app is not code-signed, macOS may show a "damaged" warning. After installing, run:
-            > ```
-            > sudo xattr -rd com.apple.quarantine /Applications/M-Courtyard.app
-            > ```
+            > ⚠️ Since the app is not code-signed, macOS may show a "damaged" warning. To fix:
+            > 1. Install as usual (drag to `/Applications`)
+            > 2. Open **Terminal** and run:
+            >    ```
+            >    sudo xattr -rd com.apple.quarantine /Applications/M-Courtyard.app
+            >    ```
+            > 3. Enter your Mac login password (it won't be visible — this is normal)
+            > 4. Open M-Courtyard from Applications — it will launch normally
 
             ### Requirements
             - macOS 14+ (Sonoma or later)

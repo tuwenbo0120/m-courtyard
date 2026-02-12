@@ -49,10 +49,15 @@
 | macOS 14+ | Apple Silicon (M1/M2/M3/M4) | [📦 下载 .dmg](https://github.com/tuwenbo0120/m-courtyard/releases/latest) |
 
 > **⚠️ macOS 安全提示**
-> 由于应用未使用 Apple 开发者证书签名，macOS 可能提示"已损坏"。安装后在终端运行以下命令即可正常使用：
-> ```bash
-> sudo xattr -rd com.apple.quarantine /Applications/M-Courtyard.app
-> ```
+> 由于应用未使用 Apple 开发者证书签名，macOS 可能提示"已损坏"。按以下步骤解决：
+> 1. 照常安装：打开 DMG，将应用拖入 `/Applications` 文件夹
+> 2. 打开 **终端**（聚焦搜索 → 输入"终端"或"Terminal"）
+> 3. 执行以下命令：
+>    ```bash
+>    sudo xattr -rd com.apple.quarantine /Applications/M-Courtyard.app
+>    ```
+> 4. 系统会提示输入 **Mac 登录密码**（输入时密码不会显示，这是正常现象）
+> 5. 完成！现在从"应用程序"中打开 M-Courtyard 即可正常使用
 
 <!-- TODO: 支持更多平台后在此添加 -->
 
