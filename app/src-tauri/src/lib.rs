@@ -4,7 +4,7 @@ mod fs;
 mod python;
 
 use commands::config::{get_app_config, set_model_source_path, set_export_path, set_hf_source};
-use commands::environment::{check_environment, setup_environment, check_ollama_status, list_ollama_models};
+use commands::environment::{check_environment, setup_environment, install_uv, check_ollama_status, list_ollama_models};
 use commands::project::{create_project, delete_project, list_projects};
 use commands::training::{start_training, stop_training, open_project_folder, list_adapters, open_adapter_folder, scan_local_models, open_model_cache, validate_model_path};
 use commands::files::{import_files, list_project_files, read_file_content, delete_file};
@@ -28,6 +28,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             check_environment,
             setup_environment,
+            install_uv,
             check_ollama_status,
             list_ollama_models,
             create_project,

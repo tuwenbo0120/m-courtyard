@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { Monitor, Languages, Info, FolderOpen, RefreshCw, Download, RotateCcw, Globe, Palette } from "lucide-react";
-import { checkEnvironment, setupEnvironment, type EnvironmentStatus } from "@/services/environment";
+import { checkEnvironment, setupEnvironment, installUv, type EnvironmentStatus } from "@/services/environment";
 import { useThemeStore, type ThemeId } from "@/stores/themeStore";
 
 interface AppConfigResponse {
@@ -85,6 +85,22 @@ export function SettingsPage() {
     }
   };
 
+  const [uvInstalling, setUvInstalling] = useState(false);
+
+  const handleInstallUv = async () => {
+    setUvInstalling(true);
+    setSetupMsg(null);
+    try {
+      await installUv();
+      setSetupMsg(t("environment.uvInstallSuccess"));
+      await refresh();
+    } catch (e) {
+      setSetupMsg(t("environment.setupError", { error: String(e) }));
+    } finally {
+      setUvInstalling(false);
+    }
+  };
+
   const { theme, setTheme } = useThemeStore();
 
   const setLanguage = (lang: string) => {
@@ -160,7 +176,24 @@ export function SettingsPage() {
           </div>
         </div>
 
-        {/* Setup Button */}
+        {/* Install uv button - shown when uv is not found */}
+        {env && !env.uv_available && (
+          <div className="space-y-2">
+            <button
+              onClick={handleInstallUv}
+              disabled={uvInstalling}
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              <Download size={16} />
+              {uvInstalling ? t("environment.uvInstalling") : t("environment.installUv")}
+            </button>
+            <p className="text-xs text-muted-foreground text-center">
+              {t("environment.installUvDesc")}
+            </p>
+          </div>
+        )}
+
+        {/* Setup Button - shown when uv is available but python/mlx-lm is not ready */}
         {env && (!env.python_ready || !env.mlx_lm_ready) && env.uv_available && (
           <div className="space-y-2">
             <button

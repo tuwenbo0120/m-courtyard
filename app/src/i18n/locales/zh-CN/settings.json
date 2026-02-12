@@ -25,7 +25,11 @@
     "installMlxLm": "安装 mlx-lm 训练框架",
     "installMlxLmDesc": "将使用 uv 在虚拟环境中安装 mlx-lm（Apple Silicon 训练框架）",
     "setupDesc": "将创建 Python 虚拟环境并安装 mlx-lm 训练框架",
-    "browseModelDir": "选择 {{source}} 模型目录"
+    "browseModelDir": "选择 {{source}} 模型目录",
+    "installUv": "安装 uv 包管理器",
+    "uvInstalling": "正在安装 uv...",
+    "installUvDesc": "将从官方源下载并安装 uv（高速 Python 包管理器）",
+    "uvInstallSuccess": "uv 安装成功！现在可以配置 Python 环境了。"
   },
   "theme": {
     "title": "主题",

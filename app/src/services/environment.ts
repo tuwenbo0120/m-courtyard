@@ -24,6 +24,10 @@ export async function setupEnvironment(): Promise<void> {
   return invoke("setup_environment");
 }
 
+export async function installUv(): Promise<void> {
+  return invoke("install_uv");
+}
+
 export async function checkOllamaStatus(): Promise<OllamaStatus> {
   return invoke("check_ollama_status");
 }

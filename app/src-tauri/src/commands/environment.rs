@@ -129,6 +129,45 @@ pub async fn setup_environment(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Install uv package manager via the official installer script.
+/// Uses `curl -LsSf https://astral.sh/uv/install.sh | sh` which installs to ~/.local/bin/uv.
+#[tauri::command]
+pub async fn install_uv(app: tauri::AppHandle) -> Result<(), String> {
+    let _ = app.emit("env:setup-progress", serde_json::json!({
+        "step": "Downloading uv package manager...",
+        "percent": 20
+    }));
+
+    // Use the official uv installer script
+    let result = tokio::process::Command::new("/bin/sh")
+        .args(["-c", "curl -LsSf https://astral.sh/uv/install.sh | sh"])
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run uv installer: {}", e))?;
+
+    if !result.status.success() {
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        return Err(format!("uv installation failed: {}", stderr));
+    }
+
+    let _ = app.emit("env:setup-progress", serde_json::json!({
+        "step": "Verifying uv installation...",
+        "percent": 80
+    }));
+
+    // Verify uv is now findable
+    if PythonExecutor::find_uv().is_none() {
+        return Err("uv was installed but could not be found. Please restart the app and try again.".to_string());
+    }
+
+    let _ = app.emit("env:setup-progress", serde_json::json!({
+        "step": "uv installed successfully!",
+        "percent": 100
+    }));
+
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn check_ollama_status() -> Result<OllamaStatus, String> {
     let ollama_bin = PythonExecutor::find_ollama();

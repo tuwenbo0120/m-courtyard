@@ -19,7 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Model Download Script**: New `download_model.py` with real-time progress reporting (JSON event stream)
 - **Model Download Command**: Rust backend support for downloading HuggingFace models with progress tracking
 - **Ollama Path Detection**: `find_ollama()` in executor for reliable Ollama binary discovery in .app bundles
-- **Expanded uv Detection**: Added `~/.cargo/bin/uv` and `~/.local/bin/uv` search paths
+- **One-click uv Installation**: Install uv package manager directly from Settings when not detected, using the official installer
+- **Expanded uv Detection**: Added `~/.cargo/bin/uv`, `~/.local/bin/uv`, `~/.uv/bin/uv`, and Conda/Miniconda/Miniforge/Mambaforge paths
+
+### Refactored
+- Unified binary discovery logic into shared `find_binary()` helper (uv, ollama)
 
 ### Changed
 - Updated slogan to "Say Goodbye to Complexity, Easily Create Your AI Model"

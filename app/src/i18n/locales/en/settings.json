@@ -25,7 +25,11 @@
     "installMlxLm": "Install mlx-lm Training Framework",
     "installMlxLmDesc": "Will install mlx-lm (Apple Silicon training framework) in virtual environment using uv",
     "setupDesc": "Will create a Python virtual environment and install mlx-lm training framework",
-    "browseModelDir": "Select {{source}} model directory"
+    "browseModelDir": "Select {{source}} model directory",
+    "installUv": "Install uv Package Manager",
+    "uvInstalling": "Installing uv...",
+    "installUvDesc": "Will download and install uv (fast Python package manager) from the official source",
+    "uvInstallSuccess": "uv installed successfully! You can now set up the Python environment."
   },
   "theme": {
     "title": "Theme",
