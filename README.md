@@ -271,7 +271,6 @@ Please make sure to:
 
 If you find M-Courtyard useful:
 - Give it a ⭐ on GitHub — it helps more people discover the project!
-- [Sponsor on Open Collective](https://opencollective.com/m-courtyard) — Fund ongoing development
 
 ## Star History
 

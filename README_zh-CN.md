@@ -259,7 +259,6 @@ m-courtyard/
 
 如果觉得 M-Courtyard 对你有帮助：
 - 给个 ⭐ — 让更多人发现这个项目！
-- [在 Open Collective 赞助](https://opencollective.com/m-courtyard) — 支持持续开发
 
 ## Star History
 
