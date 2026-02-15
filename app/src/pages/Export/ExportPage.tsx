@@ -137,12 +137,46 @@ export function ExportPage() {
   const [step1Open, setStep1Open] = useState(true);
   const [step2Open, setStep2Open] = useState(true);
   const [step3Open, setStep3Open] = useState(true);
+  const sectionStep1Ref = useRef<HTMLDivElement>(null);
+  const sectionStep2Ref = useRef<HTMLDivElement>(null);
+  const sectionStep3Ref = useRef<HTMLDivElement>(null);
+  const [validationHint, setValidationHint] = useState<string | null>(null);
+  const validationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const exportSubSteps = [
     { key: "export", label: t("step.export"), done: !!selectedAdapter },
     { key: "name", label: t("step.name"), done: !!modelName.trim() },
     { key: "size", label: t("step.size"), done: quantDone },
   ];
+
+  // Show a validation hint on the first incomplete section, auto-dismiss after 3s
+  const showValidationHint = (hintKey: string, targetRef: React.RefObject<HTMLDivElement | null>) => {
+    if (validationTimerRef.current) clearTimeout(validationTimerRef.current);
+    setValidationHint(hintKey);
+    targetRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    validationTimerRef.current = setTimeout(() => setValidationHint(null), 3500);
+  };
+
+  // Validate form completeness before exporting; scroll to first incomplete section
+  const handleExportWithValidation = () => {
+    if (!selectedAdapter) {
+      setStep1Open(true);
+      showValidationHint("validation.needAdapter", sectionStep1Ref);
+      return;
+    }
+    if (!modelName.trim()) {
+      setStep2Open(true);
+      showValidationHint("validation.needModelName", sectionStep2Ref);
+      return;
+    }
+    if (!quantization) {
+      setStep3Open(true);
+      showValidationHint("validation.needQuantization", sectionStep3Ref);
+      return;
+    }
+    if (ollamaInstalled === false || isExporting) return;
+    handleExport();
+  };
 
   if (!currentProject) {
     return (
@@ -180,7 +214,7 @@ export function ExportPage() {
 
         <div className="space-y-3">
           {/* 4.1 Adapter Selection - Collapsible Card */}
-          <div className="rounded-lg border border-border bg-card">
+          <div ref={sectionStep1Ref} className="rounded-lg border border-border bg-card">
             <button
               onClick={() => setStep1Open(!step1Open)}
               className="flex w-full items-center justify-between p-4"
@@ -190,6 +224,9 @@ export function ExportPage() {
                 <span className="flex items-center gap-1.5">
                   {selectedAdapter ? <CheckCircle2 size={18} className="text-success drop-shadow-[0_0_3px_var(--success-glow)]" /> : <Circle size={18} className="text-muted-foreground/30" />}
                   4.1 {t("section.selectAdapter")}
+                  {validationHint === "validation.needAdapter" && (
+                    <span className="ml-2 animate-pulse rounded bg-destructive/90 px-2 py-0.5 text-[11px] font-medium text-destructive-foreground">{t(validationHint)}</span>
+                  )}
                 </span>
               </h3>
               {selectedAdapter && (
@@ -274,7 +311,7 @@ export function ExportPage() {
           </div>
 
           {/* 4.2 Model Name - Collapsible Card */}
-          <div className="rounded-lg border border-border bg-card">
+          <div ref={sectionStep2Ref} className="rounded-lg border border-border bg-card">
             <button
               onClick={() => setStep2Open(!step2Open)}
               className="flex w-full items-center justify-between p-4"
@@ -284,6 +321,9 @@ export function ExportPage() {
                 <span className="flex items-center gap-1.5">
                   {modelName.trim() ? <CheckCircle2 size={18} className="text-success drop-shadow-[0_0_3px_var(--success-glow)]" /> : <Circle size={18} className="text-muted-foreground/30" />}
                   4.2 {t("section.modelName")}
+                  {validationHint === "validation.needModelName" && (
+                    <span className="ml-2 animate-pulse rounded bg-destructive/90 px-2 py-0.5 text-[11px] font-medium text-destructive-foreground">{t(validationHint)}</span>
+                  )}
                 </span>
               </h3>
               {!step2Open && modelName.trim() && (
@@ -304,7 +344,7 @@ export function ExportPage() {
           </div>
 
           {/* 4.3 Quantization - Collapsible Card */}
-          <div className="rounded-lg border border-border bg-card">
+          <div ref={sectionStep3Ref} className="rounded-lg border border-border bg-card">
             <button
               onClick={() => setStep3Open(!step3Open)}
               className="flex w-full items-center justify-between p-4"
@@ -314,6 +354,9 @@ export function ExportPage() {
                 <span className="flex items-center gap-1.5">
                   {quantDone ? <CheckCircle2 size={18} className="text-success drop-shadow-[0_0_3px_var(--success-glow)]" /> : <Circle size={18} className="text-muted-foreground/30" />}
                   4.3 {t("section.quantization")}
+                  {validationHint === "validation.needQuantization" && (
+                    <span className="ml-2 animate-pulse rounded bg-destructive/90 px-2 py-0.5 text-[11px] font-medium text-destructive-foreground">{t(validationHint)}</span>
+                  )}
                 </span>
               </h3>
               {!step3Open && (
@@ -352,9 +395,12 @@ export function ExportPage() {
           )}
 
           <button
-            onClick={handleExport}
-            disabled={isExporting || !modelName.trim() || !baseModel.trim() || !quantization || adapters.length === 0 || ollamaInstalled === false}
-            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            onClick={handleExportWithValidation}
+            className={`flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
+              isExporting || !modelName.trim() || !baseModel.trim() || !quantization || adapters.length === 0 || ollamaInstalled === false
+                ? "bg-primary/50 text-primary-foreground/70 cursor-not-allowed"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }`}
           >
             <Upload size={16} />
             {isExporting ? t("ollama.exporting") : t("ollama.exportButton")}

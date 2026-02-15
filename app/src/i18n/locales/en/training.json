@@ -114,9 +114,41 @@
     "stable": "Loss is mostly stable, keep monitoring",
     "warning": "Loss is volatile, attention recommended"
   },
+  "alerts": {
+    "title": "Smart Alerts",
+    "count": "{{count}} active",
+    "none": "No active alerts. Training is stable.",
+    "memory": {
+      "title": "Memory pressure detected",
+      "detail": "Training hit memory limits and may fail soon.",
+      "action": "Lower batch size or max sequence length, then restart training."
+    },
+    "runtime": {
+      "title": "Runtime exception detected",
+      "detail": "An exception signature appeared in recent logs.",
+      "action": "Open training logs and fix the reported script/model issue first."
+    },
+    "thermal": {
+      "title": "Thermal throttling risk",
+      "detail": "Device temperature may be limiting training speed.",
+      "action": "Close heavy apps or pause briefly to cool down, then continue."
+    },
+    "stalled": {
+      "title": "Progress appears stalled",
+      "detail": "No new iterations were observed for a while.",
+      "action": "Check I/O and logs. If still stuck, stop and restart with safer params."
+    },
+    "lossRising": {
+      "title": "Loss is rising",
+      "detail": "Recent train loss trend moved upward noticeably.",
+      "action": "Review data quality and lower learning rate if needed."
+    }
+  },
   "latestTrainLoss": "Latest Train Loss:",
   "lossCurve": "Loss Curve",
   "waitingData": "Waiting for training data...",
+  "lossStopped": "Training was stopped. Not enough data to draw a loss curve yet.",
+  "lossNoData": "Not enough data to draw a loss curve yet.",
   "invalidModelError": "No valid model found at the selected path. Cannot start training.",
   "paramsSummary": "{{iters}} iters \u00b7 Batch {{batch}} \u00b7 {{method}}",
   "entries": "{{count}} entries",
@@ -141,11 +173,12 @@
     "noData": "N/A",
     "report": {
       "copyMd": "Copy Report Markdown",
-      "saveMd": "Save Markdown",
-      "saveCsv": "Save CSV",
-      "saveSvg": "Save SVG",
-      "savePng": "Save PNG",
       "share": "System Share"
     }
+  },
+  "validation": {
+    "needModel": "Please select a training model first",
+    "needDataset": "Please select a dataset first",
+    "needMethod": "Please select a training method first"
   }
 }

@@ -24,8 +24,54 @@
   "noAdapterOption": "No adapter (base model only)",
   "baseModel": "Base model: ",
   "adapterLoaded": "Adapter loaded. Send a message to test your fine-tuned model.",
+  "ab": {
+    "title": "A/B Comparison",
+    "advancedTitle": "Advanced A/B Comparison",
+    "advancedTip": "Optional",
+    "hint": "Run the same prompt on base model and tuned model for advanced side-by-side analysis.",
+    "promptPlaceholder": "Enter one prompt for side-by-side comparison...",
+    "modeLabel": "Mode",
+    "modeUsed": "Executed in {{mode}} mode",
+    "mode": {
+      "auto": "Auto",
+      "sequential": "Sequential",
+      "parallel": "Parallel"
+    },
+    "modeDesc": {
+      "auto": "Auto decides mode based on available memory.",
+      "sequential": "Runs one model after another to reduce memory pressure.",
+      "parallel": "Runs both models at the same time for faster comparison."
+    },
+    "run": "Run A/B",
+    "running": "Running A/B...",
+    "needAdapter": "Please select a trained adapter first.",
+    "emptyResponse": "No response output.",
+    "metrics": {
+      "duration": "Duration: {{value}}",
+      "tokens": "Tokens: {{value}}",
+      "tps": "Tokens/s: {{value}}"
+    },
+    "model": {
+      "base": "Base Model",
+      "tuned": "Tuned Model"
+    },
+    "voteTitle": "Manual Vote",
+    "vote": {
+      "base": "Base is better",
+      "tuned": "Tuned is better",
+      "tie": "Tie"
+    },
+    "conclusionPlaceholder": "Optional notes: Why did you vote this way?",
+    "saveHint": "Save this comparison as a project-level evaluation record.",
+    "save": "Save Conclusion",
+    "saved": "Conclusion saved.",
+    "recent": "Recent saved conclusions",
+    "errorUnknown": "Unknown inference error",
+    "errorTimeout": "Inference timed out (120s)."
+  },
   "step": {
     "adapter": "Adapter",
+    "ab": "A/B",
     "test": "Test"
   }
 }

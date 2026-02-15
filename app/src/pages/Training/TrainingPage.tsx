@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
-import { Play, Square, Gauge, Layers, Target, Gem, BarChart3, FileText, FolderOpen, Copy, Check, ArrowRight, Trash2, ChevronDown, ChevronRight, X, CheckCircle2, Circle, Trophy, Upload, Clock, TrendingDown } from "lucide-react";
+import { Play, Square, Gauge, Layers, Target, Gem, BarChart3, FileText, FolderOpen, Copy, Check, ArrowRight, Trash2, ChevronDown, ChevronRight, X, CheckCircle2, Circle, Trophy, Upload, Clock, TrendingDown, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProjectStore } from "@/stores/projectStore";
 import { useTrainingStore } from "@/stores/trainingStore";
@@ -11,6 +11,15 @@ import { ModelSelector } from "@/components/ModelSelector";
 import { StepProgress } from "@/components/StepProgress";
 
 type HealthLevel = "green" | "yellow" | "red";
+type AlertLevel = "warning" | "critical";
+
+interface SmartAlert {
+  id: "memory" | "runtime" | "thermal" | "stalled" | "lossRising";
+  level: AlertLevel;
+  titleKey: string;
+  detailKey: string;
+  actionKey: string;
+}
 
 function formatDurationShort(totalSeconds: number): string {
   const seconds = Math.max(0, Math.floor(totalSeconds));
@@ -88,35 +97,128 @@ function deriveTrainingHealth(logs: string[], trainLossData: [number, number][])
   };
 }
 
-function sanitizeReportFileName(input: string): string {
-  const normalized = input
-    .trim()
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-  return normalized || "training-report";
+function deriveSmartAlerts({
+  logs,
+  trainLossData,
+  elapsedSeconds,
+  currentIter,
+  stalledSeconds,
+}: {
+  logs: string[];
+  trainLossData: [number, number][];
+  elapsedSeconds: number;
+  currentIter: number;
+  stalledSeconds: number;
+}): SmartAlert[] {
+  const recentLogs = logs.slice(-120).join("\n").toLowerCase();
+  const alerts: SmartAlert[] = [];
+
+  const pushAlert = (alert: SmartAlert) => {
+    if (!alerts.some((item) => item.id === alert.id)) {
+      alerts.push(alert);
+    }
+  };
+
+  const containsAny = (keywords: string[]) =>
+    keywords.some((keyword) => recentLogs.includes(keyword));
+
+  if (
+    containsAny([
+      "out of memory",
+      "cuda out of memory",
+      "mps backend out of memory",
+      "oom",
+      "memory error",
+    ])
+  ) {
+    pushAlert({
+      id: "memory",
+      level: "critical",
+      titleKey: "alerts.memory.title",
+      detailKey: "alerts.memory.detail",
+      actionKey: "alerts.memory.action",
+    });
+  }
+
+  if (
+    containsAny([
+      "traceback",
+      "runtimeerror",
+      "fatal error",
+      "segmentation fault",
+      "exception",
+    ])
+  ) {
+    pushAlert({
+      id: "runtime",
+      level: "critical",
+      titleKey: "alerts.runtime.title",
+      detailKey: "alerts.runtime.detail",
+      actionKey: "alerts.runtime.action",
+    });
+  }
+
+  if (
+    containsAny(["thermal", "throttl", "overheat", "temperature", "too hot"])
+  ) {
+    pushAlert({
+      id: "thermal",
+      level: "warning",
+      titleKey: "alerts.thermal.title",
+      detailKey: "alerts.thermal.detail",
+      actionKey: "alerts.thermal.action",
+    });
+  }
+
+  if (
+    (currentIter === 0 && elapsedSeconds >= 120) ||
+    (currentIter > 0 && stalledSeconds >= 90)
+  ) {
+    pushAlert({
+      id: "stalled",
+      level: "warning",
+      titleKey: "alerts.stalled.title",
+      detailKey: "alerts.stalled.detail",
+      actionKey: "alerts.stalled.action",
+    });
+  }
+
+  const recentLoss = trainLossData
+    .slice(-6)
+    .map(([, loss]) => loss)
+    .filter((loss) => Number.isFinite(loss));
+
+  if (recentLoss.length >= 4) {
+    const first = recentLoss[0];
+    const last = recentLoss[recentLoss.length - 1];
+    const ratio = (last - first) / (Math.abs(first) + 1e-6);
+    if (ratio > 0.12) {
+      pushAlert({
+        id: "lossRising",
+        level: "warning",
+        titleKey: "alerts.lossRising.title",
+        detailKey: "alerts.lossRising.detail",
+        actionKey: "alerts.lossRising.action",
+      });
+    }
+  }
+
+  return alerts.sort((a, b) => {
+    if (a.level === b.level) return 0;
+    return a.level === "critical" ? -1 : 1;
+  });
 }
 
-function downloadBlob(fileName: string, blob: Blob): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
-}
-
-function LossChart({ trainLoss, valLoss, totalIters }: {
+function LossChart({ trainLoss, valLoss, totalIters, emptyText }: {
   trainLoss: [number, number][];
   valLoss: [number, number][];
   totalIters: number;
+  emptyText: string;
 }) {
   if (trainLoss.length < 2 && valLoss.length < 2) {
     return (
       <div className="flex h-48 items-center justify-center text-xs text-muted-foreground">
-        {"Waiting for data..."}
+        {emptyText}
       </div>
     );
   }
@@ -198,12 +300,17 @@ export function TrainingPage() {
   } = useTrainingStore();
 
   const logRef = useRef<HTMLDivElement>(null);
-  const lossChartRef = useRef<HTMLDivElement>(null);
+  const prevStatusRef = useRef(status);
   const [copied, setCopied] = useState(false);
   const [reportCopied, setReportCopied] = useState(false);
   const [datasetVersions, setDatasetVersions] = useState<DatasetVersionInfo[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<string>("");
   const [datasetDropdownOpen, setDatasetDropdownOpen] = useState(false);
+  const sectionStep1Ref = useRef<HTMLDivElement>(null);
+  const sectionStep2Ref = useRef<HTMLDivElement>(null);
+  const sectionStep3Ref = useRef<HTMLDivElement>(null);
+  const [validationHint, setValidationHint] = useState<string | null>(null);
+  const validationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Collapsible step states
   const [step1Open, setStep1Open] = useState(true);
@@ -214,6 +321,7 @@ export function TrainingPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [nowTs, setNowTs] = useState(Date.now());
+  const [lastIterChangeAt, setLastIterChangeAt] = useState<number | null>(null);
 
   // Model-level validation (dataset selection is validated separately before start)
   const canStartTraining = !!(params.model && (modelValid !== false));
@@ -234,6 +342,16 @@ export function TrainingPage() {
     const timer = window.setInterval(() => setNowTs(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [status]);
+
+  useEffect(() => {
+    if (status !== "running") {
+      setLastIterChangeAt(null);
+      return;
+    }
+    if (currentIter > 0) {
+      setLastIterChangeAt(Date.now());
+    }
+  }, [status, currentIter]);
 
   // Handle model selection from ModelSelector
   const handleModelSelect = (modelId: string, isLocalPath?: boolean) => {
@@ -284,6 +402,23 @@ export function TrainingPage() {
     if (currentProject) loadDatasetVersions();
   }, [currentProject]);
 
+  useEffect(() => {
+    const prevStatus = prevStatusRef.current;
+    if (prevStatus === "running" && status === "completed") {
+      const frameId = window.requestAnimationFrame(() => {
+        const mainScroller = document.getElementById("app-main-scroll");
+        if (mainScroller) {
+          mainScroller.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      });
+      prevStatusRef.current = status;
+      return () => window.cancelAnimationFrame(frameId);
+    }
+    prevStatusRef.current = status;
+  }, [status]);
+
   // Auto scroll log
   useEffect(() => {
     if (logRef.current) {
@@ -332,15 +467,51 @@ export function TrainingPage() {
         ? t("eta.estimating")
         : t("eta.format", { time: formatDurationShort(etaSeconds) });
 
+  const stalledSeconds =
+    status === "running" && lastIterChangeAt
+      ? Math.max(0, Math.floor((nowTs - lastIterChangeAt) / 1000))
+      : 0;
+
+  const smartAlerts = deriveSmartAlerts({
+    logs,
+    trainLossData,
+    elapsedSeconds,
+    currentIter,
+    stalledSeconds,
+  });
+  const visibleAlerts = smartAlerts.slice(0, 2);
+
   const health = deriveTrainingHealth(logs, trainLossData);
+  const criticalAlert = smartAlerts.find((alert) => alert.level === "critical");
+  const warningAlert = smartAlerts.find((alert) => alert.level === "warning");
+  const healthLevel: HealthLevel =
+    criticalAlert
+      ? "red"
+      : warningAlert && health.level === "green"
+        ? "yellow"
+        : health.level;
+  const healthHintKey =
+    criticalAlert?.detailKey ||
+    (warningAlert && health.level === "green"
+      ? warningAlert.detailKey
+      : health.hintKey);
+  const healthTrendKey = criticalAlert ? "trend.warning" : health.trendKey;
+
   const healthDotClass =
-    health.level === "green"
+    healthLevel === "green"
       ? "bg-success"
-      : health.level === "yellow"
+      : healthLevel === "yellow"
         ? "bg-warning"
         : "bg-destructive";
 
-  const hasLossData = trainLossData.length > 0 || valLossData.length > 0;
+  const stoppedByUser =
+    status !== "running" && logs.some((line) => line.includes("Training stopped by user"));
+  const lossEmptyText = stoppedByUser
+    ? t("lossStopped")
+    : status === "running"
+      ? t("waitingData")
+      : t("lossNoData");
+
   const durationMs = (startedAt && completedAt) ? completedAt - startedAt : 0;
   const durationMin = Math.floor(durationMs / 60000);
   const durationSec = Math.floor((durationMs % 60000) / 1000);
@@ -352,12 +523,6 @@ export function TrainingPage() {
     ? (1 - finalTrainLoss / firstTrainLoss) * 100
     : null;
   const modelShort = params.model.split("/").pop() || params.model;
-
-  const getReportFileStem = () => {
-    const projectPart = sanitizeReportFileName(currentProject?.name || "training");
-    const tsPart = new Date().toISOString().replace(/[:.]/g, "-");
-    return `${projectPart}-${tsPart}`;
-  };
 
   const buildTrainingCsv = () => {
     const byIter = new Map<number, { train?: number; val?: number }>();
@@ -439,80 +604,6 @@ export function TrainingPage() {
     }
   };
 
-  const handleSaveReportMarkdown = () => {
-    downloadBlob(
-      `${getReportFileStem()}.md`,
-      new Blob([buildTrainingReportMarkdown()], { type: "text/markdown;charset=utf-8" })
-    );
-  };
-
-  const handleSaveReportCsv = () => {
-    downloadBlob(
-      `${getReportFileStem()}.csv`,
-      new Blob([buildTrainingCsv()], { type: "text/csv;charset=utf-8" })
-    );
-  };
-
-  const getLossSvgText = (): string | null => {
-    const svgNode = lossChartRef.current?.querySelector<SVGSVGElement>("svg");
-    if (!svgNode) return null;
-    const cloned = svgNode.cloneNode(true) as SVGSVGElement;
-    if (!cloned.getAttribute("xmlns")) {
-      cloned.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    }
-    if (!cloned.getAttribute("xmlns:xlink")) {
-      cloned.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-    }
-    return new XMLSerializer().serializeToString(cloned);
-  };
-
-  const handleSaveLossSvg = () => {
-    const svgText = getLossSvgText();
-    if (!svgText) return;
-    downloadBlob(
-      `${getReportFileStem()}-loss.svg`,
-      new Blob([svgText], { type: "image/svg+xml;charset=utf-8" })
-    );
-  };
-
-  const handleSaveLossPng = async () => {
-    const svgText = getLossSvgText();
-    if (!svgText) return;
-
-    const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
-    const svgUrl = URL.createObjectURL(svgBlob);
-    try {
-      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error("load svg failed"));
-        img.src = svgUrl;
-      });
-
-      const svgNode = lossChartRef.current?.querySelector<SVGSVGElement>("svg");
-      const width = Math.max(1, Math.round(svgNode?.viewBox.baseVal.width || svgNode?.clientWidth || 960));
-      const height = Math.max(1, Math.round(svgNode?.viewBox.baseVal.height || svgNode?.clientHeight || 520));
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      if (!context) return;
-      context.drawImage(image, 0, 0, width, height);
-
-      const pngBlob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((blob) => resolve(blob), "image/png");
-      });
-
-      if (pngBlob) {
-        downloadBlob(`${getReportFileStem()}-loss.png`, pngBlob);
-      }
-    } catch {
-      // ignore png export errors
-    } finally {
-      URL.revokeObjectURL(svgUrl);
-    }
-  };
-
   const handleShareReport = async () => {
     const markdown = buildTrainingReportMarkdown();
     const nav = navigator as Navigator & { share?: (data: { title?: string; text?: string }) => Promise<void> };
@@ -540,6 +631,35 @@ export function TrainingPage() {
       return tc("taskLock.otherProject", { name: pName, task: taskKey });
     }
     return tc(`taskLock.${reason}`);
+  };
+
+  // Show a validation hint on the first incomplete section, auto-dismiss after 3s
+  const showValidationHint = (hintKey: string, targetRef: React.RefObject<HTMLDivElement | null>) => {
+    if (validationTimerRef.current) clearTimeout(validationTimerRef.current);
+    setValidationHint(hintKey);
+    targetRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    validationTimerRef.current = setTimeout(() => setValidationHint(null), 3500);
+  };
+
+  // Validate form completeness before starting; scroll to first incomplete section
+  const handleStartWithValidation = () => {
+    if (!params.model) {
+      setStep1Open(true);
+      showValidationHint("validation.needModel", sectionStep1Ref);
+      return;
+    }
+    if (!selectedDataset) {
+      setStep2Open(true);
+      showValidationHint("validation.needDataset", sectionStep2Ref);
+      return;
+    }
+    if (!params.fine_tune_type) {
+      setStep3MethodOpen(true);
+      showValidationHint("validation.needMethod", sectionStep3Ref);
+      return;
+    }
+    if (!taskCheck.allowed) return;
+    handleStart();
   };
 
   const handleStart = async () => {
@@ -706,28 +826,6 @@ export function TrainingPage() {
                 <Copy size={12} />
                 {reportCopied ? tc("copied") : t("summary.report.copyMd")}
               </button>
-              <button onClick={handleSaveReportMarkdown} className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent">
-                <FileText size={12} />
-                {t("summary.report.saveMd")}
-              </button>
-              <button onClick={handleSaveReportCsv} className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent">
-                <BarChart3 size={12} />
-                {t("summary.report.saveCsv")}
-              </button>
-              <button
-                onClick={handleSaveLossSvg}
-                disabled={!hasLossData}
-                className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
-              >
-                {t("summary.report.saveSvg")}
-              </button>
-              <button
-                onClick={handleSaveLossPng}
-                disabled={!hasLossData}
-                className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
-              >
-                {t("summary.report.savePng")}
-              </button>
               <button onClick={handleShareReport} className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent">
                 {t("summary.report.share")}
               </button>
@@ -736,7 +834,7 @@ export function TrainingPage() {
       )}
 
       {/* ===== Step 1: Select Model (collapsible) ===== */}
-      <div className="rounded-lg border border-border bg-card">
+      <div ref={sectionStep1Ref} className="rounded-lg border border-border bg-card">
         <button
           onClick={() => setStep1Open(!step1Open)}
           className="flex w-full items-center justify-between p-4"
@@ -746,6 +844,9 @@ export function TrainingPage() {
             <span className="flex items-center gap-1.5">
               {params.model ? <CheckCircle2 size={18} className="text-success drop-shadow-[0_0_3px_var(--success-glow)]" /> : <Circle size={18} className="text-muted-foreground/30" />}
               2.1 {t("section.selectModel")}
+              {validationHint === "validation.needModel" && (
+                <span className="ml-2 animate-pulse rounded bg-destructive/90 px-2 py-0.5 text-[11px] font-medium text-destructive-foreground">{t(validationHint)}</span>
+              )}
             </span>
           </h3>
           {/* Show selected model summary when collapsed */}
@@ -792,7 +893,7 @@ export function TrainingPage() {
       </div>
 
       {/* ===== Step 2: Dataset (collapsible) ===== */}
-      <div className="rounded-lg border border-border bg-card">
+      <div ref={sectionStep2Ref} className="rounded-lg border border-border bg-card">
         <button
           onClick={() => setStep2Open(!step2Open)}
           className="flex w-full items-center justify-between p-4"
@@ -802,6 +903,9 @@ export function TrainingPage() {
             <span className="flex items-center gap-1.5">
               {selectedDataset ? <CheckCircle2 size={18} className="text-success drop-shadow-[0_0_3px_var(--success-glow)]" /> : <Circle size={18} className="text-muted-foreground/30" />}
               2.2 {t("section.selectDataset")}
+              {validationHint === "validation.needDataset" && (
+                <span className="ml-2 animate-pulse rounded bg-destructive/90 px-2 py-0.5 text-[11px] font-medium text-destructive-foreground">{t(validationHint)}</span>
+              )}
             </span>
           </h3>
           {selectedDataset && (
@@ -874,7 +978,7 @@ export function TrainingPage() {
       </div>
 
       {/* ===== Step 3: Training Method (collapsible) ===== */}
-      <div className="rounded-lg border border-border bg-card">
+      <div ref={sectionStep3Ref} className="rounded-lg border border-border bg-card">
         <button
           onClick={() => setStep3MethodOpen(!step3MethodOpen)}
           className="flex w-full items-center justify-between p-4"
@@ -884,6 +988,9 @@ export function TrainingPage() {
             <span className="flex items-center gap-1.5">
               {methodDone ? <CheckCircle2 size={18} className="text-success drop-shadow-[0_0_3px_var(--success-glow)]" /> : <Circle size={18} className="text-muted-foreground/30" />}
               2.3 {t("section.method")}
+              {validationHint === "validation.needMethod" && (
+                <span className="ml-2 animate-pulse rounded bg-destructive/90 px-2 py-0.5 text-[11px] font-medium text-destructive-foreground">{t(validationHint)}</span>
+              )}
             </span>
           </h3>
           {!step3MethodOpen && methodDone && (
@@ -1200,16 +1307,17 @@ export function TrainingPage() {
         </button>
       ) : (
         <div className="space-y-2">
-          <button onClick={handleStart} disabled={!canStartTraining || !selectedDataset || !taskCheck.allowed}
-            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50">
+          <button onClick={handleStartWithValidation}
+            className={`flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-medium transition-colors ${
+              !canStartTraining || !selectedDataset || !taskCheck.allowed
+                ? "bg-primary/50 text-primary-foreground/70 cursor-not-allowed"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }`}>
             <Play size={16} />
             {t("start")}
           </button>
           {!canStartTraining && params.model && (
             <p className="text-center text-xs text-red-400">{t("invalidModelError")}</p>
-          )}
-          {!selectedDataset && (
-            <p className="text-center text-xs text-warning">{t("selectDatasetVersion")}</p>
           )}
           {!taskCheck.allowed && (
             <p className="text-center text-xs text-warning">{getTaskLockHint(taskCheck.reason)}</p>
@@ -1245,14 +1353,49 @@ export function TrainingPage() {
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("health.title")}</p>
                   <p className="mt-1 flex items-center gap-2 text-xs font-medium text-foreground">
                     <span className={`h-2 w-2 rounded-full ${healthDotClass}`} />
-                    {t(`health.level.${health.level}`)}
+                    {t(`health.level.${healthLevel}`)}
                   </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">{t(health.hintKey)}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{t(healthHintKey)}</p>
                 </div>
                 <div className="rounded-md border border-border/70 bg-background/60 p-2">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("trend.title")}</p>
-                  <p className="mt-1 text-xs font-medium text-foreground">{t(health.trendKey)}</p>
+                  <p className="mt-1 text-xs font-medium text-foreground">{t(healthTrendKey)}</p>
                 </div>
+              </div>
+              <div className="mt-2 rounded-md border border-border/70 bg-background/60 p-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("alerts.title")}</p>
+                  {smartAlerts.length > 0 && (
+                    <p className="text-[10px] text-muted-foreground">{t("alerts.count", { count: smartAlerts.length })}</p>
+                  )}
+                </div>
+                {smartAlerts.length === 0 ? (
+                  <p className="mt-1 text-xs text-success">{t("alerts.none")}</p>
+                ) : (
+                  <div className="mt-2 space-y-1.5">
+                    {visibleAlerts.map((alert) => (
+                      <div
+                        key={alert.id}
+                        className={`rounded-md border px-2 py-1.5 ${
+                          alert.level === "critical"
+                            ? "border-destructive/40 bg-destructive/10"
+                            : "border-warning/40 bg-warning/10"
+                        }`}
+                      >
+                        <p
+                          className={`flex items-center gap-1.5 text-xs font-semibold ${
+                            alert.level === "critical" ? "text-destructive" : "text-warning"
+                          }`}
+                        >
+                          <AlertTriangle size={12} />
+                          {t(alert.titleKey)}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-foreground">{t(alert.detailKey)}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{t(alert.actionKey)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {trainLossData.length > 0 && (
                 <p className="text-xs text-muted-foreground">
@@ -1269,12 +1412,17 @@ export function TrainingPage() {
           <div className={`grid gap-4 ${trainLossData.length > 0 || valLossData.length > 0 ? "lg:grid-cols-[1fr_1fr]" : ""}`}>
             {/* Loss Chart */}
             {(trainLossData.length > 0 || valLossData.length > 0) && (
-              <div ref={lossChartRef} className="rounded-lg border border-border bg-card p-3">
+              <div className="rounded-lg border border-border bg-card p-3">
                 <h3 className="mb-1 flex items-center gap-2 text-xs font-semibold text-foreground">
                   <BarChart3 size={12} />
                   {t("lossCurve")}
                 </h3>
-                <LossChart trainLoss={trainLossData} valLoss={valLossData} totalIters={params.iters} />
+                <LossChart
+                  trainLoss={trainLossData}
+                  valLoss={valLossData}
+                  totalIters={params.iters}
+                  emptyText={lossEmptyText}
+                />
               </div>
             )}
 

@@ -85,24 +85,67 @@
     "versionCount": "{{count}} 个数据集版本",
     "trainCount": "{{count}} 条",
     "noVersions": "暂无数据集，请先生成",
-    "legacy": "旧版数据集"
+    "legacy": "旧版数据集",
+    "sourceFiles": "原始文件",
+    "genType": "生成类型",
+    "genMethod": "生成方式",
+    "methodOllama": "AI 生成（{{model}}）",
+    "methodBuiltin": "内置规则",
+    "trainSet": "训练集 (train)",
+    "validSet": "验证集 (valid)",
+    "samples": "{{count}} 条",
+    "new": "NEW",
+    "page": "第 {{current}} / {{total}} 页",
+    "prevPage": "上一页",
+    "nextPage": "下一页"
   },
   "addFile": "添加文件",
   "addFolder": "添加文件夹",
   "selectFolder": "选择文件夹",
   "datasetReady": "数据集已就绪 — 去训练模型",
-  "aiLog": "AI 生成日志",
+  "aiLog": "数据预览",
   "connectingAI": "正在连接 AI 模型...",
+  "validation": {
+    "needFiles": "请先导入数据文件",
+    "needMethod": "请先选择生成方式",
+    "needModel": "请先选择 AI 模型",
+    "needMode": "请先选择生成类型"
+  },
   "step": {
     "import": "导入",
     "add": "添加",
     "clean": "清洗",
     "method": "方式",
     "type": "类型",
+    "segment": "分段",
     "generating": "生成中",
     "done": "完成",
     "generate": "生成",
     "train": "训练",
     "goToTrain": "数据集已就绪 — 去训练"
+  },
+  "segment": {
+    "title": "智能分段预览（自动）",
+    "hint": "系统会根据文件类型自动匹配分段策略，并在清洗后更新分段质量预览。",
+    "loading": "正在加载分段预览...",
+    "empty": "暂无分段结果，请先执行清洗或开始生成流程。",
+    "strategyLabel": "主策略：{{strategy}}",
+    "itemLabel": "分段 #{{id}}",
+    "chars": "{{count}} 字符",
+    "lines": "{{count}} 行",
+    "source": "来源：{{name}}",
+    "summary": {
+      "total": "分段总数",
+      "avg": "平均长度",
+      "range": "长度范围",
+      "tooShort": "偏短",
+      "tooLong": "偏长"
+    },
+    "strategy": {
+      "markdown_recursive": "Markdown 结构分段",
+      "code_aware": "代码感知分段",
+      "fixed_length": "固定长度分段",
+      "paragraph_balanced": "段落均衡分段"
+    }
   }
 }

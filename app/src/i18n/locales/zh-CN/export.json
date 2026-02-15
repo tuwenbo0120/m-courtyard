@@ -48,5 +48,10 @@
     "export": "导出",
     "name": "命名",
     "size": "大小"
+  },
+  "validation": {
+    "needAdapter": "请先选择适配器",
+    "needModelName": "请先填写模型名称",
+    "needQuantization": "请先选择量化方式"
   }
 }

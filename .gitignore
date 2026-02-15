@@ -53,3 +53,4 @@ history/
 # ── Misc ──
 *.log
 logs/
+test/

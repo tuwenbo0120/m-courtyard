@@ -15,6 +15,7 @@
   "gen.ai_response": "🤖 AI response ({length} chars): {preview}",
   "gen.style_rejected": "⚠️ Style quality check: output too similar to source ({similarity}), skipped",
   "gen.lang_mismatch": "⚠️ Language mismatch: source script={src}, output script={out}, skipped",
+  "gen.lang_mismatch_keep_small": "⚠️ Language mismatch: source script={src}, output script={out}; kept because this is a tiny batch to avoid total failure",
   "gen.progress_style": "Generated {success} samples ({failed} failed, {rejected} too similar)",
   "gen.success": "✅ Success! Total {count} samples\n   Q: {preview}...",
   "gen.json_mismatch": "⚠️ JSON field mismatch: {keys}",

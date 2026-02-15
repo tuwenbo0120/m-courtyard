@@ -10,6 +10,7 @@ interface GenerationState {
   genError: string;
   genStopped: boolean;
   aiLogs: string[];
+  newVersionIds: string[];
 
   // Persisted form state (survive page navigation)
   formGenMode: string;
@@ -24,6 +25,7 @@ interface GenerationState {
   clearLogs: () => void;
   setFormField: (field: string, value: string) => void;
   resetForm: () => void;
+  clearNewVersions: () => void;
 
   // Internal: event listener management
   _listenersReady: boolean;
@@ -31,6 +33,8 @@ interface GenerationState {
   initListeners: (reloadFilesFn?: () => void) => void;
   setReloadFiles: (fn: () => void) => void;
   _reloadFiles: (() => void) | null;
+  _scrollToDatasets: (() => void) | null;
+  setScrollToDatasets: (fn: () => void) => void;
 }
 
 export const useGenerationStore = create<GenerationState>((set, get) => ({
@@ -45,10 +49,12 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   formGenSource: "builtin",
   formGenModel: "",
   formManualModelPath: "",
+  newVersionIds: [],
 
   _listenersReady: false,
   _unlistens: [],
   _reloadFiles: null,
+  _scrollToDatasets: null,
 
   startGeneration: () =>
     set({ generating: true, genStopped: false, genProgress: "", genError: "" }),
@@ -64,9 +70,11 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
       genError: "",
       genStopped: false,
       aiLogs: [],
+      newVersionIds: [],
     }),
 
   clearLogs: () => set({ aiLogs: [] }),
+  clearNewVersions: () => set({ newVersionIds: [] }),
 
   setFormField: (field, value) => set({ [field]: value } as any),
 
@@ -78,6 +86,7 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   }),
 
   setReloadFiles: (fn) => set({ _reloadFiles: fn }),
+  setScrollToDatasets: (fn) => set({ _scrollToDatasets: fn }),
 
   initListeners: async () => {
     if (get()._listenersReady) return;
@@ -109,6 +118,14 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
     );
     unlistens.push(u2);
 
+    const u2v = await listen<{ version?: string }>("dataset:version", (e) => {
+      const vid = e.payload.version;
+      if (vid) {
+        set({ newVersionIds: [vid] });
+      }
+    });
+    unlistens.push(u2v);
+
     const u3 = await listen("dataset:complete", () => {
       set({
         generating: false,
@@ -119,6 +136,8 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
       });
       useTaskStore.getState().releaseTask();
       get()._reloadFiles?.();
+      // Scroll to 1.4 datasets section after generation completes
+      setTimeout(() => get()._scrollToDatasets?.(), 400);
     });
     unlistens.push(u3);
 
@@ -131,6 +150,8 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
         genError: e.payload.message || "Generation failed",
       });
       useTaskStore.getState().releaseTask();
+      // Reload file list so historical datasets reappear after a failed generation
+      get()._reloadFiles?.();
     });
     unlistens.push(u4);
 

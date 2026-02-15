@@ -48,5 +48,10 @@
     "export": "Export",
     "name": "Name",
     "size": "Size"
+  },
+  "validation": {
+    "needAdapter": "Please select an adapter first",
+    "needModelName": "Please enter a model name first",
+    "needQuantization": "Please select a quantization method first"
   }
 }

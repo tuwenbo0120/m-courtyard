@@ -24,8 +24,54 @@
   "noAdapterOption": "不使用适配器（原始模型）",
   "baseModel": "基础模型：",
   "adapterLoaded": "已加载适配器，发送消息开始测试微调效果",
+  "ab": {
+    "title": "A/B 对比测试",
+    "advancedTitle": "高级 A/B 对比",
+    "advancedTip": "可选",
+    "hint": "用同一条提示词对比基础模型与微调模型，适合做进阶效果分析。",
+    "promptPlaceholder": "输入用于并排对比的一条提示词...",
+    "modeLabel": "模式",
+    "modeUsed": "本次执行模式：{{mode}}",
+    "mode": {
+      "auto": "自动",
+      "sequential": "顺序",
+      "parallel": "并行"
+    },
+    "modeDesc": {
+      "auto": "自动模式会根据可用内存自动选择执行方式。",
+      "sequential": "顺序模式依次运行两个模型，内存更安全。",
+      "parallel": "并行模式同时运行两个模型，对比更快。"
+    },
+    "run": "开始 A/B",
+    "running": "A/B 运行中...",
+    "needAdapter": "请先选择一个已训练适配器。",
+    "emptyResponse": "无响应内容。",
+    "metrics": {
+      "duration": "耗时：{{value}}",
+      "tokens": "Token：{{value}}",
+      "tps": "Tokens/s：{{value}}"
+    },
+    "model": {
+      "base": "基础模型",
+      "tuned": "微调模型"
+    },
+    "voteTitle": "人工投票",
+    "vote": {
+      "base": "基础模型更好",
+      "tuned": "微调模型更好",
+      "tie": "平局"
+    },
+    "conclusionPlaceholder": "可选：补充你本次投票结论的原因",
+    "saveHint": "保存后将作为项目内评估结论记录。",
+    "save": "保存结论",
+    "saved": "结论已保存。",
+    "recent": "最近保存结论",
+    "errorUnknown": "未知推理错误",
+    "errorTimeout": "推理超时（120 秒）。"
+  },
   "step": {
     "adapter": "适配器",
+    "ab": "A/B",
     "test": "测试"
   }
 }

@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
-import { Upload, Trash2, Eye, ArrowRight, FolderOpen, Square, Wand2, ChevronDown, ChevronRight, CheckCircle2, Circle, AlertTriangle, Settings, Check, AlertCircle } from "lucide-react";
+import { Upload, Trash2, Eye, ArrowRight, FolderOpen, Square, Wand2, ChevronDown, ChevronRight, CheckCircle2, Circle, AlertTriangle, Settings, Check, AlertCircle, ChevronLeft } from "lucide-react";
+import i18nGlobal from "@/i18n";
 import { useNavigate } from "react-router-dom";
 import { useProjectStore } from "@/stores/projectStore";
 import { useGenerationStore } from "@/stores/generationStore";
@@ -25,6 +26,10 @@ interface DatasetVersionInfo {
   train_size: number;
   valid_size: number;
   created: string;
+  raw_files: string[];
+  mode: string;
+  source: string;
+  model: string;
 }
 
 interface RawFileSample {
@@ -34,8 +39,39 @@ interface RawFileSample {
   snippet: string;
 }
 
+interface SegmentPreviewItem {
+  id: number;
+  text_preview: string;
+  char_count: number;
+  line_count: number;
+  strategy: string;
+  source_file: string;
+}
+
+interface SegmentPreviewSummary {
+  total_segments: number;
+  avg_chars: number;
+  min_chars: number;
+  max_chars: number;
+  short_segments: number;
+  long_segments: number;
+  primary_strategy: string;
+}
+
+interface SegmentPreviewResponse {
+  summary: SegmentPreviewSummary;
+  items: SegmentPreviewItem[];
+}
+
 type ModeStatus = "recommended" | "available" | "cautious";
 type ModeStatusMap = Record<"qa" | "style" | "chat" | "instruct", ModeStatus>;
+
+const SEGMENT_STRATEGY_KEY_MAP: Record<string, string> = {
+  markdown_recursive: "segment.strategy.markdown_recursive",
+  code_aware: "segment.strategy.code_aware",
+  fixed_length: "segment.strategy.fixed_length",
+  paragraph_balanced: "segment.strategy.paragraph_balanced",
+};
 
 function analyzeContentForModes(samples: RawFileSample[]): { status: ModeStatusMap; hintKey: string } {
   if (samples.length === 0) {
@@ -138,7 +174,7 @@ function analyzeContentForModes(samples: RawFileSample[]): { status: ModeStatusM
 }
 
 export function DataPrepPage() {
-  const { t, i18n } = useTranslation("dataPrep");
+  const { t } = useTranslation("dataPrep");
   const { t: tc } = useTranslation("common");
   const navigate = useNavigate();
   const { projects, fetchProjects, currentProject, setCurrentProject } =
@@ -153,7 +189,7 @@ export function DataPrepPage() {
   const [_cleanProgress, setCleanProgress] = useState("");
   const {
     generating, genProgress, genStep, genTotal, genError, aiLogs,
-    initListeners, setReloadFiles, clearLogs,
+    initListeners, setReloadFiles, clearLogs, newVersionIds, setScrollToDatasets,
   } = useGenerationStore();
   const {
     formGenMode: genMode, formGenSource: genSource, formGenModel: genModel,
@@ -170,6 +206,16 @@ export function DataPrepPage() {
   const autoGenAfterClean = useRef(false);
   const [deleteConfirm, setDeleteConfirm] = useState<FileInfo | null>(null);
   const [ollamaReady, setOllamaReady] = useState<boolean | null>(null); // null = checking
+  const sectionStep1Ref = useRef<HTMLDivElement>(null);
+  const sectionStep2Ref = useRef<HTMLDivElement>(null);
+  const [validationHint, setValidationHint] = useState<string | null>(null);
+  const validationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [segmentPreview, setSegmentPreview] = useState<SegmentPreviewResponse | null>(null);
+  const [segmentPreviewLoading, setSegmentPreviewLoading] = useState(false);
+  const datasetSectionRef = useRef<HTMLDivElement>(null);
+  const [datasetPage, setDatasetPage] = useState(0);
+  const DATASETS_PER_PAGE = 10;
+  const [expandedDataset, setExpandedDataset] = useState<string | null>(null);
 
   // Show scrollbar on scroll, hide after 3 seconds of inactivity
   useEffect(() => {
@@ -195,6 +241,9 @@ export function DataPrepPage() {
     chat: t("generate.mode_chat"),
     instruct: t("generate.mode_instruct"),
   };
+
+  const getStrategyLabel = (strategy: string) =>
+    t(SEGMENT_STRATEGY_KEY_MAP[strategy] || "segment.strategy.paragraph_balanced");
 
   const [modeCapability, setModeCapability] = useState<{ status: ModeStatusMap; hintKey: string }>({
     status: { qa: "available", style: "available", chat: "available", instruct: "available" },
@@ -259,6 +308,13 @@ export function DataPrepPage() {
     setReloadFiles(reloadFiles);
   }, [currentProject, setReloadFiles]);
 
+  // Register scroll-to-datasets callback for auto-scroll on generation complete
+  useEffect(() => {
+    setScrollToDatasets(() => {
+      datasetSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [setScrollToDatasets]);
+
   // Reset pipeline stage when generation finishes
   useEffect(() => {
     if (!generating && !cleaning) {
@@ -283,6 +339,9 @@ export function DataPrepPage() {
       setRawFiles(raw);
       setCleanedFiles(cleaned);
       setDatasetVersions(versions);
+      setDatasetPage(0);
+      setExpandedDataset(null);
+      await loadSegmentPreview(currentProject.id);
 
       // Sample file content for mode detection
       if (raw.length > 0) {
@@ -317,6 +376,22 @@ export function DataPrepPage() {
     }
   };
 
+  const loadSegmentPreview = async (projectId: string) => {
+    setSegmentPreviewLoading(true);
+    try {
+      const payload: SegmentPreviewResponse = await invoke("preview_clean_segments", {
+        projectId,
+        limit: 8,
+      });
+      setSegmentPreview(payload);
+    } catch (e) {
+      console.error("Failed to preview cleaned segments:", e);
+      setSegmentPreview(null);
+    } finally {
+      setSegmentPreviewLoading(false);
+    }
+  };
+
 
   const { canStart: taskCanStart, acquireTask } = useTaskStore();
   const taskCheck = currentProject ? taskCanStart(currentProject.id, "generating") : { allowed: true };
@@ -343,6 +418,35 @@ export function DataPrepPage() {
     previewPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // Show a validation hint on the first incomplete section, auto-dismiss after 3s
+  const showValidationHint = (hintKey: string, targetRef: React.RefObject<HTMLDivElement | null>) => {
+    if (validationTimerRef.current) clearTimeout(validationTimerRef.current);
+    setValidationHint(hintKey);
+    targetRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    validationTimerRef.current = setTimeout(() => setValidationHint(null), 3500);
+  };
+
+  // Validate form completeness before starting; scroll to first incomplete section
+  const handleStartWithValidation = () => {
+    if (rawFiles.length === 0) {
+      setStep1Open(true);
+      showValidationHint("validation.needFiles", sectionStep1Ref);
+      return;
+    }
+    if (genSource === "ollama" && !genModel.trim()) {
+      setStep2Open(true);
+      showValidationHint("validation.needModel", sectionStep2Ref);
+      return;
+    }
+    if (!genMode) {
+      setStep2Open(true);
+      showValidationHint("validation.needMode", sectionStep2Ref);
+      return;
+    }
+    if (!taskCheck.allowed) return;
+    handleStartPipeline();
+  };
+
   // Start the generation pipeline: always clean current raw files → generate
   const handleStartPipeline = async () => {
     if (!currentProject) return;
@@ -360,7 +464,7 @@ export function DataPrepPage() {
     setCleanProgress(t("generate.cleaningStatus"));
     autoGenAfterClean.current = true;
     try {
-      await invoke("start_cleaning", { projectId: currentProject.id, lang: i18n.language });
+      await invoke("start_cleaning", { projectId: currentProject.id, lang: i18nGlobal.language });
     } catch (e) {
       setCleaning(false);
       setPipelineStage("idle");
@@ -379,8 +483,8 @@ export function DataPrepPage() {
       return;
     }
     setPipelineStage("generating");
-    // Clear displayed dataset versions (visual only, files untouched)
-    setDatasetVersions([]);
+    setDatasetPage(0);
+    setExpandedDataset(null);
     const store = useGenerationStore.getState();
     store.startGeneration();
     try {
@@ -390,7 +494,7 @@ export function DataPrepPage() {
         mode: formGenMode,
         source: formGenSource,
         resume: false,
-        lang: i18n.language,
+        lang: i18nGlobal.language,
       });
     } catch (e) {
       useGenerationStore.setState({
@@ -423,6 +527,9 @@ export function DataPrepPage() {
       setRawFiles(raw);
       setCleanedFiles(cleaned);
       setDatasetVersions(versions);
+      setDatasetPage(0);
+      setExpandedDataset(null);
+      await loadSegmentPreview(proj.id);
     } catch (e) {
       console.error("Reload files failed:", e);
     }
@@ -542,9 +649,12 @@ export function DataPrepPage() {
     { key: "add", label: t("step.add"), done: rawFiles.length > 0 },
     { key: "method", label: t("step.method"), done: methodDone },
     { key: "type", label: t("step.type"), done: typeDone },
+    { key: "segment", label: t("step.segment"), done: (segmentPreview?.summary.total_segments || 0) > 0 },
     { key: "generating", label: t("step.generating"), done: false, active: pipelineStage === "generating" || generating || pipelineStage === "cleaning" },
     { key: "done", label: t("step.done"), done: datasetVersions.length > 0 && !generating },
   ].filter((s) => s.active || s.done || s.key !== "generating");
+
+  const segmentMaxChars = Math.max(segmentPreview?.summary.max_chars || 1, 1);
 
   return (
     <div className="space-y-4">
@@ -561,6 +671,8 @@ export function DataPrepPage() {
               setRawFiles([]);
               setCleanedFiles([]);
               setDatasetVersions([]);
+              setDatasetPage(0);
+              setExpandedDataset(null);
               setPreview(null);
               setPreviewName("");
               setGenModel("");
@@ -591,7 +703,7 @@ export function DataPrepPage() {
         {/* File Lists */}
         <div className="space-y-4">
           {/* 1.1 Select raw data files - collapsible card */}
-          <div className="rounded-lg border border-border bg-card">
+          <div ref={sectionStep1Ref} className="rounded-lg border border-border bg-card">
             <button
               onClick={() => setStep1Open(!step1Open)}
               className="flex w-full items-center justify-between p-4"
@@ -601,6 +713,9 @@ export function DataPrepPage() {
                 <span className="flex items-center gap-1.5">
                   {rawFiles.length > 0 ? <CheckCircle2 size={18} className="text-success drop-shadow-[0_0_3px_var(--success-glow)]" /> : <Circle size={18} className="text-muted-foreground/30" />}
                   1.1 {t("section.selectFiles")} ({rawFiles.length})
+                  {validationHint === "validation.needFiles" && (
+                    <span className="ml-2 animate-pulse rounded bg-destructive/90 px-2 py-0.5 text-[11px] font-medium text-destructive-foreground">{t(validationHint)}</span>
+                  )}
                 </span>
               </h3>
             </button>
@@ -678,7 +793,7 @@ export function DataPrepPage() {
           </div>
 
           {/* 1.2 Generation method + 1.3 Generation type + Generate - collapsible card */}
-            <div className="rounded-lg border border-border bg-card">
+            <div ref={sectionStep2Ref} className="rounded-lg border border-border bg-card">
               <button
                 onClick={() => setStep2Open(!step2Open)}
                 className="flex w-full items-center justify-between p-4"
@@ -688,6 +803,9 @@ export function DataPrepPage() {
                   <span className="flex items-center gap-1.5">
                     {methodDone ? <CheckCircle2 size={18} className="text-success drop-shadow-[0_0_3px_var(--success-glow)]" /> : <Circle size={18} className="text-muted-foreground/30" />}
                     1.2 {t("section.genMethod")}
+                    {(validationHint === "validation.needModel" || validationHint === "validation.needMode") && (
+                      <span className="ml-2 animate-pulse rounded bg-destructive/90 px-2 py-0.5 text-[11px] font-medium text-destructive-foreground">{t(validationHint)}</span>
+                    )}
                   </span>
                 </h3>
                 {!step2Open && (
@@ -810,6 +928,72 @@ export function DataPrepPage() {
                     </p>
                   )}
 
+                  <div className="rounded-md border border-border/80 bg-muted/20 p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold text-foreground">{t("segment.title")}</p>
+                      <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-foreground">
+                        {t("segment.strategyLabel", {
+                          strategy: getStrategyLabel(segmentPreview?.summary.primary_strategy || "paragraph_balanced"),
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">{t("segment.hint")}</p>
+
+                    {segmentPreviewLoading ? (
+                      <p className="text-xs text-muted-foreground">{t("segment.loading")}</p>
+                    ) : !segmentPreview || segmentPreview.summary.total_segments === 0 ? (
+                      <p className="text-xs text-muted-foreground">{t("segment.empty")}</p>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div className="rounded-md border border-border bg-card/60 px-2 py-1.5">
+                            <p className="text-muted-foreground">{t("segment.summary.total")}</p>
+                            <p className="font-medium text-foreground">{segmentPreview.summary.total_segments}</p>
+                          </div>
+                          <div className="rounded-md border border-border bg-card/60 px-2 py-1.5">
+                            <p className="text-muted-foreground">{t("segment.summary.avg")}</p>
+                            <p className="font-medium text-foreground">{segmentPreview.summary.avg_chars}</p>
+                          </div>
+                          <div className="rounded-md border border-border bg-card/60 px-2 py-1.5">
+                            <p className="text-muted-foreground">{t("segment.summary.range")}</p>
+                            <p className="font-medium text-foreground">{segmentPreview.summary.min_chars} - {segmentPreview.summary.max_chars}</p>
+                          </div>
+                          <div className="rounded-md border border-border bg-card/60 px-2 py-1.5">
+                            <p className="text-muted-foreground">{t("segment.summary.tooShort")} / {t("segment.summary.tooLong")}</p>
+                            <p className="font-medium text-foreground">{segmentPreview.summary.short_segments} / {segmentPreview.summary.long_segments}</p>
+                          </div>
+                        </div>
+
+                        <div className="max-h-44 space-y-1.5 overflow-auto pr-1">
+                          {segmentPreview.items.map((item) => (
+                            <div key={`${item.id}-${item.source_file}`} className="rounded-md border border-border bg-card/60 px-2 py-1.5 text-[11px]">
+                              <div className="mb-1 flex items-center justify-between gap-2">
+                                <span className="font-medium text-foreground">
+                                  {t("segment.itemLabel", { id: item.id })}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {t("segment.chars", { count: item.char_count })} · {t("segment.lines", { count: item.line_count })}
+                                </span>
+                              </div>
+                              <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                                <div
+                                  className="h-full rounded-full bg-primary/70"
+                                  style={{ width: `${Math.max(8, Math.round((item.char_count / segmentMaxChars) * 100))}%` }}
+                                />
+                              </div>
+                              <p className="line-clamp-2 text-muted-foreground">{item.text_preview}</p>
+                              {item.source_file && (
+                                <p className="mt-1 text-[10px] text-muted-foreground/90">
+                                  {t("segment.source", { name: item.source_file })}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
                   {/* Generate / Stop Buttons */}
                   {generating || cleaning ? (
                     <button
@@ -823,9 +1007,12 @@ export function DataPrepPage() {
                   ) : (
                     <>
                       <button
-                        onClick={handleStartPipeline}
-                        disabled={!genMode || (genSource === "ollama" && !genModel.trim()) || rawFiles.length === 0 || !taskCheck.allowed}
-                        className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                        onClick={handleStartWithValidation}
+                        className={`flex w-full items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
+                          !genMode || (genSource === "ollama" && !genModel.trim()) || rawFiles.length === 0 || !taskCheck.allowed
+                            ? "bg-primary/50 text-primary-foreground/70 cursor-not-allowed"
+                            : "bg-primary text-primary-foreground hover:bg-primary/90"
+                        }`}
                       >
                         <Wand2 size={14} />
                         {t("generate.button")}
@@ -865,7 +1052,7 @@ export function DataPrepPage() {
             </div>
 
           {/* 1.4 Generated datasets - collapsible card */}
-          <div className="rounded-lg border border-border bg-card">
+          <div ref={datasetSectionRef} className="rounded-lg border border-border bg-card">
             <button
               onClick={() => setStep3Open(!step3Open)}
               className="flex w-full items-center justify-between p-4"
@@ -894,19 +1081,91 @@ export function DataPrepPage() {
                 ) : (
                   <div className="space-y-2">
                     <div className="space-y-1">
-                      {datasetVersions.map((v) => (
-                        <div
-                          key={v.version}
-                          className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs"
-                        >
-                          <CheckCircle2 size={14} className="shrink-0 text-success" />
-                          <span className="shrink-0 whitespace-nowrap font-medium text-foreground">{v.version === "legacy" ? t("dataset.legacy") : v.created}</span>
-                          <span className="shrink-0 whitespace-nowrap text-muted-foreground">train: {v.train_count}</span>
-                          <span className="text-muted-foreground/40">·</span>
-                          <span className="shrink-0 whitespace-nowrap text-muted-foreground">valid: {v.valid_count}</span>
-                          <span className="ml-auto shrink-0 whitespace-nowrap text-muted-foreground/60">{formatSize(v.train_size + v.valid_size)}</span>
-                        </div>
-                      ))}
+                      {(() => {
+                        const totalPages = Math.ceil(datasetVersions.length / DATASETS_PER_PAGE);
+                        const paged = datasetVersions.slice(datasetPage * DATASETS_PER_PAGE, (datasetPage + 1) * DATASETS_PER_PAGE);
+                        return (
+                          <>
+                            {paged.map((v) => {
+                              const isNew = newVersionIds.includes(v.version);
+                              const isExpanded = expandedDataset === v.version;
+                              return (
+                                <div key={v.version} className="rounded-md border border-border text-xs">
+                                  <button
+                                    onClick={() => setExpandedDataset(isExpanded ? null : v.version)}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/30 transition-colors"
+                                  >
+                                    {isExpanded ? <ChevronDown size={12} className="shrink-0 text-muted-foreground" /> : <ChevronRight size={12} className="shrink-0 text-muted-foreground" />}
+                                    <CheckCircle2 size={14} className="shrink-0 text-success" />
+                                    <span className="shrink-0 whitespace-nowrap font-medium text-foreground">{v.version === "legacy" ? t("dataset.legacy") : v.created}</span>
+                                    {isNew && (
+                                      <span className="rounded-sm bg-success/15 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-success">
+                                        {t("dataset.new")}
+                                      </span>
+                                    )}
+                                    <span className="ml-auto shrink-0 whitespace-nowrap text-muted-foreground/60">{formatSize(v.train_size + v.valid_size)}</span>
+                                  </button>
+                                  {isExpanded && (
+                                    <div className="border-t border-border/50 bg-muted/10 px-4 py-2 space-y-1 text-[11px]">
+                                      <div className="flex gap-2">
+                                        <span className="shrink-0 text-muted-foreground">{t("dataset.trainSet")}:</span>
+                                        <span className="text-foreground">{t("dataset.samples", { count: v.train_count })}</span>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <span className="shrink-0 text-muted-foreground">{t("dataset.validSet")}:</span>
+                                        <span className="text-foreground">{t("dataset.samples", { count: v.valid_count })}</span>
+                                      </div>
+                                      {v.raw_files.length > 0 && (
+                                        <div className="flex gap-2">
+                                          <span className="shrink-0 text-muted-foreground">{t("dataset.sourceFiles")}:</span>
+                                          <span className="text-foreground">{v.raw_files.join(", ")}</span>
+                                        </div>
+                                      )}
+                                      {v.mode && (
+                                        <div className="flex gap-2">
+                                          <span className="shrink-0 text-muted-foreground">{t("dataset.genType")}:</span>
+                                          <span className="text-foreground">{MODE_LABELS[v.mode] || v.mode}</span>
+                                        </div>
+                                      )}
+                                      {v.source && (
+                                        <div className="flex gap-2">
+                                          <span className="shrink-0 text-muted-foreground">{t("dataset.genMethod")}:</span>
+                                          <span className="text-foreground">
+                                            {v.source === "ollama" ? t("dataset.methodOllama", { model: v.model || "?" }) : t("dataset.methodBuiltin")}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {totalPages > 1 && (
+                              <div className="flex items-center justify-between pt-1">
+                                <button
+                                  disabled={datasetPage === 0}
+                                  onClick={() => setDatasetPage((p) => Math.max(0, p - 1))}
+                                  className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"
+                                >
+                                  <ChevronLeft size={12} />
+                                  {t("dataset.prevPage")}
+                                </button>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {t("dataset.page", { current: datasetPage + 1, total: totalPages })}
+                                </span>
+                                <button
+                                  disabled={datasetPage >= totalPages - 1}
+                                  onClick={() => setDatasetPage((p) => Math.min(totalPages - 1, p + 1))}
+                                  className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"
+                                >
+                                  {t("dataset.nextPage")}
+                                  <ChevronRight size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     {/* Next Step: Go to Training */}
                     <button
@@ -923,66 +1182,62 @@ export function DataPrepPage() {
           </div>
         </div>
 
-        {/* Preview Panel / AI Log Panel */}
-        <div ref={previewPanelRef} className="sticky top-4">
-          <h3 className="mb-2 text-sm font-semibold text-foreground">
-            {(generating || aiLogs.length > 0) ? (
-              <>
-                {t("aiLog")}
-                {generating && <span className="ml-2 inline-block h-2 w-2 animate-pulse rounded-full bg-success" />}
-              </>
-            ) : (
-              <>
-                {t("preview.title")}
-                {previewName && (
-                  <span className="ml-2 font-normal text-muted-foreground">
-                    — {previewName}
-                  </span>
-                )}
-              </>
+        {/* Preview Panel / AI Log Panel — outer border aligned with left 1.1 card */}
+        <div ref={previewPanelRef} className="sticky top-4 rounded-lg border border-border bg-card">
+          <div className="flex items-center justify-between p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              {t("aiLog")}
+              {generating && <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-success" />}
+              {!generating && previewName && !(aiLogs.length > 0) && (
+                <span className="font-normal text-muted-foreground">
+                  — {previewName}
+                </span>
+              )}
+            </h3>
+            {!generating && aiLogs.length > 0 && (
+              <button
+                onClick={() => clearLogs()}
+                className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {tc("clearLogs")}
+              </button>
             )}
-          </h3>
-          <div ref={logScrollRef} className="log-scroll-container min-h-[600px] max-h-[calc(100vh-200px)] overflow-auto rounded-lg border border-border bg-card p-3">
-            {(generating || aiLogs.length > 0) ? (
-              <div className="space-y-0.5 font-mono text-xs leading-relaxed">
-                {aiLogs.length === 0 && generating && (
-                  <p className="text-muted-foreground">{t("connectingAI")}</p>
-                )}
-                {aiLogs.map((log, idx) => (
-                  <p
-                    key={idx}
-                    className={`whitespace-pre-wrap ${
-                      log.includes("✅") ? "text-success" :
-                      log.includes("❌") ? "text-red-400" :
-                      log.includes("⚠️") ? "text-warning" :
-                      log.includes("🤖") ? "text-blue-400" :
-                      log.includes("📡") || log.includes("💾") ? "text-tag-trained" :
-                      log.includes("──") || log.includes("══") ? "text-muted-foreground font-semibold" :
-                      "text-foreground"
-                    }`}
-                  >
-                    {log}
-                  </p>
-                ))}
-                <div ref={logEndRef} />
-                {!generating && aiLogs.length > 0 && (
-                  <button
-                    onClick={() => clearLogs()}
-                    className="mt-2 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    {tc("clearLogs")}
-                  </button>
-                )}
-              </div>
-            ) : preview ? (
-              <pre className="whitespace-pre-wrap text-xs text-foreground font-mono leading-relaxed">
-                {preview}
-              </pre>
-            ) : (
-              <p className="py-8 text-center text-xs text-muted-foreground">
-                {t("preview.noContent")}
-              </p>
-            )}
+          </div>
+          <div className="border-t border-border px-4 pb-4 pt-0">
+            <div ref={logScrollRef} className="log-scroll-container min-h-[560px] max-h-[calc(100vh-240px)] overflow-auto rounded-md border border-border/60 bg-muted/10 p-3 mt-3">
+              {(generating || aiLogs.length > 0) ? (
+                <div className="space-y-0.5 font-mono text-xs leading-relaxed">
+                  {aiLogs.length === 0 && generating && (
+                    <p className="text-muted-foreground">{t("connectingAI")}</p>
+                  )}
+                  {aiLogs.map((log, idx) => (
+                    <p
+                      key={idx}
+                      className={`whitespace-pre-wrap ${
+                        log.includes("✅") ? "text-success" :
+                        log.includes("❌") ? "text-red-400" :
+                        log.includes("⚠️") ? "text-warning" :
+                        log.includes("🤖") ? "text-blue-400" :
+                        log.includes("📡") || log.includes("💾") ? "text-tag-trained" :
+                        log.includes("──") || log.includes("══") ? "text-muted-foreground font-semibold" :
+                        "text-foreground"
+                      }`}
+                    >
+                      {log}
+                    </p>
+                  ))}
+                  <div ref={logEndRef} />
+                </div>
+              ) : preview ? (
+                <pre className="whitespace-pre-wrap text-xs text-foreground font-mono leading-relaxed">
+                  {preview}
+                </pre>
+              ) : (
+                <p className="py-8 text-center text-xs text-muted-foreground">
+                  {t("preview.noContent")}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

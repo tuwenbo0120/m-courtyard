@@ -5,11 +5,29 @@ interface ChatMessage {
   content: string;
 }
 
+export interface ABComparison {
+  id: string;
+  prompt: string;
+  mode: "sequential" | "parallel";
+  baseResponse: string;
+  tunedResponse: string;
+  baseDurationMs: number;
+  tunedDurationMs: number;
+  baseTokensPerSec: number;
+  tunedTokensPerSec: number;
+  vote: "base" | "tuned" | "tie";
+  conclusion: string;
+  modelId: string;
+  adapterPath: string;
+  createdAt: number;
+}
+
 // Per-project state
 interface ProjectTestingData {
   messages: ChatMessage[];
   selectedAdapter: string;
   modelId: string;
+  abComparisons: ABComparison[];
 }
 
 interface TestingState {
@@ -22,6 +40,7 @@ interface TestingState {
   messages: ChatMessage[];
   selectedAdapter: string;
   modelId: string;
+  abComparisons: ABComparison[];
 
   // Actions
   switchProject: (projectId: string) => void;
@@ -30,6 +49,8 @@ interface TestingState {
   clearChat: () => void;
   setSelectedAdapter: (adapter: string) => void;
   setModelId: (id: string) => void;
+  saveABComparison: (record: ABComparison) => void;
+  clearABComparisons: () => void;
   resetAll: () => void;
 }
 
@@ -37,6 +58,7 @@ const emptyProjectData = (): ProjectTestingData => ({
   messages: [],
   selectedAdapter: "",
   modelId: "",
+  abComparisons: [],
 });
 
 const getProjectData = (state: TestingState): ProjectTestingData =>
@@ -60,6 +82,7 @@ export const useTestingStore = create<TestingState>((set, get) => ({
   messages: [],
   selectedAdapter: "",
   modelId: "",
+  abComparisons: [],
 
   switchProject: (projectId) => {
     const data = get().projectData[projectId] || emptyProjectData();
@@ -68,6 +91,7 @@ export const useTestingStore = create<TestingState>((set, get) => ({
       messages: data.messages,
       selectedAdapter: data.selectedAdapter,
       modelId: data.modelId,
+      abComparisons: data.abComparisons,
     });
   },
 
@@ -86,6 +110,22 @@ export const useTestingStore = create<TestingState>((set, get) => ({
 
   setModelId: (id) => set((s) => updateProjectData(s, { modelId: id })),
 
+  saveABComparison: (record) =>
+    set((s) => {
+      const records = [record, ...getProjectData(s).abComparisons].slice(0, 20);
+      return updateProjectData(s, { abComparisons: records });
+    }),
+
+  clearABComparisons: () =>
+    set((s) => updateProjectData(s, { abComparisons: [] })),
+
   resetAll: () =>
-    set((s) => updateProjectData(s, { messages: [], selectedAdapter: "", modelId: "" })),
+    set((s) =>
+      updateProjectData(s, {
+        messages: [],
+        selectedAdapter: "",
+        modelId: "",
+        abComparisons: [],
+      })
+    ),
 }));

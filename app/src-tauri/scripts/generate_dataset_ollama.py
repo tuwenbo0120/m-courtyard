@@ -119,6 +119,73 @@ def collect_output_text(data: dict, mode: str) -> str:
     return ""
 
 
+QA_QUESTION_KEYS = ("question", "Question", "问题", "提问", "问句")
+QA_ANSWER_KEYS = ("answer", "Answer", "回答", "答案", "response", "reply", "回复", "output")
+INSTRUCTION_KEYS = ("instruction", "Instruction", "指令", "任务", "要求", "prompt")
+OUTPUT_KEYS = ("output", "Output", "回答", "答案", "response", "reply", "回复", "内容")
+CHAT_KEYS = ("conversations", "conversation", "dialogue", "dialog", "messages", "对话", "聊天记录")
+
+
+def _pick_first_text(data: dict, keys: tuple[str, ...]) -> str:
+    for key in keys:
+        value = data.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def normalize_mode_payload(data: dict, mode: str) -> dict:
+    """Normalize multilingual/variant field names into canonical schema."""
+    if not isinstance(data, dict):
+        return {}
+
+    if mode == "qa":
+        question = _pick_first_text(data, QA_QUESTION_KEYS)
+        answer = _pick_first_text(data, QA_ANSWER_KEYS)
+        if question and answer:
+            return {"question": question, "answer": answer}
+        return data
+
+    if mode in ("style", "instruct"):
+        instruction = _pick_first_text(data, INSTRUCTION_KEYS)
+        output = _pick_first_text(data, OUTPUT_KEYS)
+        if instruction and output:
+            return {"instruction": instruction, "output": output}
+        return data
+
+    if mode == "chat":
+        for key in CHAT_KEYS:
+            convs = data.get(key)
+            if not isinstance(convs, list):
+                continue
+
+            normalized: list[dict] = []
+            for item in convs:
+                if not isinstance(item, dict):
+                    continue
+                role = item.get("role") or item.get("speaker") or item.get("from") or item.get("角色") or item.get("身份")
+                content = item.get("content") or item.get("text") or item.get("message") or item.get("内容")
+                if not isinstance(content, str) or not content.strip():
+                    continue
+
+                role_text = str(role).strip().lower() if role is not None else ""
+                if role_text in {"user", "human", "用户", "提问者", "问者"}:
+                    norm_role = "user"
+                elif role_text in {"assistant", "ai", "bot", "助手", "回答者", "答者"}:
+                    norm_role = "assistant"
+                else:
+                    norm_role = "assistant" if normalized and normalized[-1]["role"] == "user" else "user"
+
+                normalized.append({"role": norm_role, "content": content.strip()})
+
+            if len(normalized) >= 2:
+                return {"conversations": normalized}
+
+        return data
+
+    return data
+
+
 def extract_text_from_response(api_result: dict) -> str:
     """Extract usable text from Ollama response, checking both content and thinking fields."""
     msg = api_result.get("message", {})
@@ -174,25 +241,95 @@ def repair_json_string(s: str) -> str:
     return ''.join(result)
 
 
+def _cleanup_extracted_value(raw: str) -> str:
+    value = raw.strip().strip(",").strip()
+    if not value:
+        return ""
+
+    value = re.sub(r"^```(?:json)?", "", value, flags=re.IGNORECASE).strip()
+    value = re.sub(r"```$", "", value).strip()
+
+    if value.startswith(("\"", "'")):
+        quote = value[0]
+        value = value[1:]
+        if value.endswith(quote):
+            value = value[:-1]
+
+    value = value.strip()
+    value = re.sub(r"\s*}\s*$", "", value)
+    value = re.sub(r",\s*$", "", value)
+    value = value.replace('\\"', '"').replace("\\n", "\n").replace("\\t", "\t")
+    return value.strip()
+
+
+def _extract_between(text: str, current_keys: tuple[str, ...], next_keys: tuple[str, ...]) -> str:
+    current = "|".join(re.escape(k) for k in current_keys)
+    nxt = "|".join(re.escape(k) for k in next_keys)
+    pattern = rf'["\']?(?:{current})["\']?\s*[:：]\s*(.+?)\s*,\s*["\']?(?:{nxt})["\']?\s*[:：]'
+    m = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+    return m.group(1).strip() if m else ""
+
+
+def _extract_tail(text: str, current_keys: tuple[str, ...]) -> str:
+    current = "|".join(re.escape(k) for k in current_keys)
+    pattern = rf'["\']?(?:{current})["\']?\s*[:：]\s*(.+?)(?:\s*}}\s*$|\s*$)'
+    m = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+    return m.group(1).strip() if m else ""
+
+
 def extract_key_value_fallback(text: str, mode: str) -> dict | None:
     """Last-resort extraction: find key fields by regex patterns."""
-    if mode in ("style", "instruct"):
-        inst_m = re.search(r'"instruction"\s*:\s*"((?:[^"\\]|\\.)*)"', text, re.DOTALL)
-        out_m = re.search(r'"output"\s*:\s*"((?:[^"\\]|\\.)*)"', text, re.DOTALL)
-        if not inst_m or not out_m:
-            # Try with greedy match for unescaped quotes in values
-            inst_m = re.search(r'"instruction"\s*:\s*"(.+?)"\s*,\s*"output"', text, re.DOTALL)
-            out_m = re.search(r'"output"\s*:\s*"(.+?)"\s*}', text, re.DOTALL)
-        if inst_m and out_m:
-            return {"instruction": inst_m.group(1), "output": out_m.group(1)}
-    elif mode == "qa":
-        q_m = re.search(r'"question"\s*:\s*"((?:[^"\\]|\\.)*)"', text, re.DOTALL)
-        a_m = re.search(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)"', text, re.DOTALL)
-        if not q_m or not a_m:
-            q_m = re.search(r'"question"\s*:\s*"(.+?)"\s*,\s*"answer"', text, re.DOTALL)
-            a_m = re.search(r'"answer"\s*:\s*"(.+?)"\s*}', text, re.DOTALL)
-        if q_m and a_m:
-            return {"question": q_m.group(1), "answer": a_m.group(1)}
+    if mode == "qa":
+        q_raw = _extract_between(text, QA_QUESTION_KEYS, QA_ANSWER_KEYS)
+        a_raw = _extract_tail(text, QA_ANSWER_KEYS)
+        question = _cleanup_extracted_value(q_raw)
+        answer = _cleanup_extracted_value(a_raw)
+        if question and answer:
+            return {"question": question, "answer": answer}
+
+    elif mode in ("style", "instruct"):
+        inst_raw = _extract_between(text, INSTRUCTION_KEYS, OUTPUT_KEYS)
+        out_raw = _extract_tail(text, OUTPUT_KEYS)
+        instruction = _cleanup_extracted_value(inst_raw)
+        output = _cleanup_extracted_value(out_raw)
+        if instruction and output:
+            return {"instruction": instruction, "output": output}
+
+    elif mode == "chat":
+        # Try to salvage chat payload as JSON object first, then normalize keys.
+        obj = None
+        try:
+            obj = json.loads(repair_json_string(text))
+        except Exception:
+            obj = None
+        if isinstance(obj, dict):
+            normalized = normalize_mode_payload(obj, mode)
+            convs = normalized.get("conversations") if isinstance(normalized, dict) else None
+            if isinstance(convs, list) and len(convs) >= 2:
+                return {"conversations": convs}
+
+        # Fallback: collect all {"role": ..., "content": ...} objects (handles truncated JSON)
+        role_content_objs = []
+        for m in re.finditer(r'\{[^{}]*\}', text):
+            try:
+                inner = json.loads(m.group())
+                if isinstance(inner, dict) and "role" in inner and "content" in inner:
+                    role_text = str(inner["role"]).strip().lower()
+                    content_text = str(inner["content"]).strip()
+                    if not content_text:
+                        continue
+                    if role_text in ("user", "human", "用户", "提问者"):
+                        norm_role = "user"
+                    elif role_text in ("assistant", "ai", "bot", "助手"):
+                        norm_role = "assistant"
+                    else:
+                        norm_role = "assistant" if role_content_objs and role_content_objs[-1]["role"] == "user" else "user"
+                    role_content_objs.append({"role": norm_role, "content": content_text})
+            except (json.JSONDecodeError, KeyError):
+                continue
+        if len(role_content_objs) >= 2:
+            return {"conversations": role_content_objs}
+
     return None
 
 
@@ -212,7 +349,7 @@ def parse_json_response(text: str, mode: str = "") -> dict | None:
     try:
         obj = json.loads(cleaned)
         if isinstance(obj, dict):
-            return obj
+            return normalize_mode_payload(obj, mode) if mode else obj
     except json.JSONDecodeError:
         pass
 
@@ -221,7 +358,7 @@ def parse_json_response(text: str, mode: str = "") -> dict | None:
         repaired = repair_json_string(cleaned)
         obj = json.loads(repaired)
         if isinstance(obj, dict):
-            return obj
+            return normalize_mode_payload(obj, mode) if mode else obj
     except json.JSONDecodeError:
         pass
 
@@ -240,14 +377,14 @@ def parse_json_response(text: str, mode: str = "") -> dict | None:
                 try:
                     obj = json.loads(candidate)
                     if isinstance(obj, dict):
-                        return obj
+                        return normalize_mode_payload(obj, mode) if mode else obj
                 except json.JSONDecodeError:
                     # Try repair on the candidate
                     try:
                         repaired = repair_json_string(candidate)
                         obj = json.loads(repaired)
                         if isinstance(obj, dict):
-                            return obj
+                            return normalize_mode_payload(obj, mode) if mode else obj
                     except json.JSONDecodeError:
                         pass
                 start = -1
@@ -263,7 +400,7 @@ def parse_json_response(text: str, mode: str = "") -> dict | None:
         try:
             obj = json.loads(m.group())
             if isinstance(obj, dict):
-                return obj
+                return normalize_mode_payload(obj, mode) if mode else obj
         except json.JSONDecodeError:
             continue
 
@@ -272,6 +409,7 @@ def parse_json_response(text: str, mode: str = "") -> dict | None:
 
 def to_chat_format(data: dict, mode: str) -> dict | None:
     """Convert to unified chat messages format."""
+    data = normalize_mode_payload(data, mode)
     if mode == "qa":
         q = data.get("question", "")
         a = data.get("answer", "")
@@ -392,8 +530,8 @@ def main():
             try:
                 user_msg = user_template.format(text=text[:2000])
                 user_msg = f"{user_msg}\n\n{t('gen.prompt.keep_language')}"
-                # Style mode needs more tokens for creative content
-                n_predict = 4096 if args.mode == "style" else 2048
+                # Chat/style modes need more tokens (conversation arrays / creative content)
+                n_predict = 4096 if args.mode in ("style", "chat") else 2048
                 api_result = call_ollama(args.model, system_prompt, user_msg, temperature=temp, num_predict=n_predict)
 
                 # Extract text from response (handles both content and thinking fields)
@@ -420,11 +558,14 @@ def main():
                     src_script = dominant_script(text)
                     out_script = dominant_script(collect_output_text(data, args.mode))
                     if src_script in ("latin", "cjk") and out_script in ("latin", "cjk") and src_script != out_script:
-                        failed += 1
                         emit("log", message=t("gen.lang_mismatch", src=src_script, out=out_script))
-                        emit("progress", step=i + 1, total=total,
-                             desc=t("gen.progress_status", success=success_count, failed=failed))
-                        continue
+                        # For tiny batches, keep the sample to avoid hard-fail all segments.
+                        if total > 3:
+                            failed += 1
+                            emit("progress", step=i + 1, total=total,
+                                 desc=t("gen.progress_status", success=success_count, failed=failed))
+                            continue
+                        emit("log", message=t("gen.lang_mismatch_keep_small", src=src_script, out=out_script))
 
                     # Quality check for style mode: reject if output is too similar to input
                     if args.mode == "style":

@@ -114,9 +114,41 @@
     "stable": "Loss 基本稳定，可继续观察",
     "warning": "Loss 波动较大，建议关注"
   },
+  "alerts": {
+    "title": "智能告警",
+    "count": "{{count}} 条进行中",
+    "none": "当前无活跃告警，训练状态稳定。",
+    "memory": {
+      "title": "检测到内存压力",
+      "detail": "训练已触发内存上限，可能即将失败。",
+      "action": "请降低 Batch 或最大序列长度后重新开始训练。"
+    },
+    "runtime": {
+      "title": "检测到运行时异常",
+      "detail": "最近日志中出现异常特征信息。",
+      "action": "请先查看训练日志，修复脚本或模型相关问题。"
+    },
+    "thermal": {
+      "title": "存在热降频风险",
+      "detail": "设备温度可能正在限制训练速度。",
+      "action": "建议关闭高负载应用，或短暂停止训练后继续。"
+    },
+    "stalled": {
+      "title": "训练进度可能停滞",
+      "detail": "一段时间内未观察到新的迭代进展。",
+      "action": "请检查 I/O 与日志；若持续停滞，建议停止并用更稳参数重启。"
+    },
+    "lossRising": {
+      "title": "Loss 呈上升趋势",
+      "detail": "近期训练损失有明显上升。",
+      "action": "请检查数据质量，必要时降低学习率。"
+    }
+  },
   "latestTrainLoss": "最新 Train Loss:",
   "lossCurve": "Loss 曲线",
   "waitingData": "等待训练数据...",
+  "lossStopped": "训练已停止，暂无足够数据绘制曲线。",
+  "lossNoData": "暂无足够数据绘制曲线。",
   "invalidModelError": "所选路径下未检测到有效模型，无法开始训练",
   "paramsSummary": "{{iters}} 次迭代 · Batch {{batch}} · {{method}}",
   "entries": "{{count}} 条",
@@ -141,11 +173,12 @@
     "noData": "无数据",
     "report": {
       "copyMd": "复制报告 Markdown",
-      "saveMd": "保存 Markdown",
-      "saveCsv": "保存 CSV",
-      "saveSvg": "保存 SVG",
-      "savePng": "保存 PNG",
       "share": "系统分享"
     }
+  },
+  "validation": {
+    "needModel": "请先选择训练模型",
+    "needDataset": "请先选择数据集",
+    "needMethod": "请先选择训练方法"
   }
 }

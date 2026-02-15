@@ -1,11 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import { Send, Trash2, MessageSquare, Settings, FolderOpen, ChevronDown, ChevronRight, CheckCircle2, Circle } from "lucide-react";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { Send, Trash2, MessageSquare, Settings, FolderOpen, ChevronDown, ChevronRight, CheckCircle2, Circle, GitCompare } from "lucide-react";
 import { useProjectStore } from "@/stores/projectStore";
 import { useTestingStore } from "@/stores/testingStore";
-import { StepProgress } from "@/components/StepProgress";
 
 interface AdapterInfo {
   name: string;
@@ -13,6 +12,35 @@ interface AdapterInfo {
   created: string;
   has_weights: boolean;
   base_model: string;
+}
+
+interface InferenceResponsePayload {
+  text?: string;
+  request_id?: string;
+}
+
+interface InferenceErrorPayload {
+  message?: string;
+  request_id?: string;
+}
+
+type ABMode = "auto" | "sequential" | "parallel";
+type ResolvedABMode = "sequential" | "parallel";
+
+interface ABRunResult {
+  response: string;
+  durationMs: number;
+  tokens: number;
+  tokensPerSec: number;
+  error?: string;
+}
+
+interface ABExecutionResult {
+  prompt: string;
+  mode: ResolvedABMode;
+  base: ABRunResult;
+  tuned: ABRunResult;
+  createdAt: number;
 }
 
 export function TestingPage() {
@@ -27,9 +55,14 @@ export function TestingPage() {
   } = useTestingStore();
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isABRunning, setIsABRunning] = useState(false);
   const [maxTokens, setMaxTokens] = useState(512);
   const [temperature, setTemperature] = useState(0.7);
   const [showConfig, setShowConfig] = useState(false);
+  const [abPrompt, setABPrompt] = useState("");
+  const [abMode, setABMode] = useState<ABMode>("auto");
+  const [abResult, setABResult] = useState<ABExecutionResult | null>(null);
+  const [advancedABOpen, setAdvancedABOpen] = useState(false);
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
   const [adapterDropdownOpen, setAdapterDropdownOpen] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
@@ -77,48 +110,171 @@ export function TestingPage() {
     }
   }, [messages]);
 
-  // Listen for inference events
-  useEffect(() => {
-    const unsubs: (() => void)[] = [];
+  const createRequestId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
-    listen<{ text?: string }>("inference:response", (e) => {
-      const text = e.payload.text || "";
-      useTestingStore.getState().addMessage({ role: "assistant", content: text });
-      setIsGenerating(false);
-    }).then((u) => unsubs.push(u));
+  const runInference = async ({
+    prompt,
+    adapterPath,
+    requestId,
+  }: {
+    prompt: string;
+    adapterPath: string | null;
+    requestId: string;
+  }): Promise<ABRunResult> => {
+    const startedAt = performance.now();
 
-    listen<{ message?: string }>("inference:error", (e) => {
-      useTestingStore.getState().addMessage({ role: "assistant", content: `Error: ${e.payload.message || "Unknown error"}` });
-      setIsGenerating(false);
-    }).then((u) => unsubs.push(u));
+    return new Promise<ABRunResult>((resolve) => {
+      let finished = false;
+      let timeoutId: number | null = null;
+      let offResponse: UnlistenFn | null = null;
+      let offError: UnlistenFn | null = null;
 
-    listen<{ message?: string }>("inference:status", (e) => {
-      console.log("Inference status:", e.payload.message);
-    }).then((u) => unsubs.push(u));
+      const done = (payload: { response?: string; error?: string }) => {
+        if (finished) return;
+        finished = true;
 
-    return () => { unsubs.forEach((u) => u()); };
-  }, []);
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId);
+        }
+        if (offResponse) offResponse();
+        if (offError) offError();
+
+        const durationMs = Math.max(1, Math.round(performance.now() - startedAt));
+        const response = payload.response ?? "";
+        const tokens = response.trim() ? response.trim().split(/\s+/).length : 0;
+        const tokensPerSec = tokens > 0 ? tokens / (durationMs / 1000) : 0;
+
+        resolve({
+          response,
+          durationMs,
+          tokens,
+          tokensPerSec,
+          error: payload.error,
+        });
+      };
+
+      Promise.all([
+        listen<InferenceResponsePayload>("inference:response", (e) => {
+          if ((e.payload.request_id || "") !== requestId) return;
+          done({ response: e.payload.text || "" });
+        }),
+        listen<InferenceErrorPayload>("inference:error", (e) => {
+          if ((e.payload.request_id || "") !== requestId) return;
+          done({ error: e.payload.message || t("ab.errorUnknown") });
+        }),
+      ])
+        .then(([u1, u2]) => {
+          offResponse = u1;
+          offError = u2;
+
+          timeoutId = window.setTimeout(() => {
+            done({ error: t("ab.errorTimeout") });
+          }, 120000);
+
+          invoke("start_inference", {
+            projectId: currentProject?.id,
+            prompt,
+            model: modelId,
+            adapterPath,
+            maxTokens,
+            temperature,
+            lang: i18n.language,
+            requestId,
+          }).catch((err) => {
+            done({ error: String(err) });
+          });
+        })
+        .catch((err) => {
+          done({ error: String(err) });
+        });
+    });
+  };
+
+  const resolveABMode = (): ResolvedABMode => {
+    if (abMode !== "auto") return abMode;
+    const nav = navigator as Navigator & { deviceMemory?: number };
+    const memory = nav.deviceMemory ?? 8;
+    return memory >= 16 ? "parallel" : "sequential";
+  };
 
   const handleSend = async () => {
-    if (!input.trim() || isGenerating || !currentProject) return;
+    if (!input.trim() || isGenerating || isABRunning || !currentProject) return;
     const userMsg = { role: "user" as const, content: input.trim() };
     addMessage(userMsg);
     setInput("");
     setIsGenerating(true);
 
     try {
-      await invoke("start_inference", {
-        projectId: currentProject.id,
+      const result = await runInference({
         prompt: userMsg.content,
-        model: modelId,
         adapterPath: selectedAdapter || null,
-        maxTokens,
-        temperature,
-        lang: i18n.language,
+        requestId: createRequestId(),
       });
-    } catch (e) {
-      addMessage({ role: "assistant", content: `Error: ${String(e)}` });
+
+      if (result.error) {
+        addMessage({ role: "assistant", content: `Error: ${result.error}` });
+      } else {
+        addMessage({ role: "assistant", content: result.response });
+      }
+    } catch (err) {
+      addMessage({ role: "assistant", content: `Error: ${String(err)}` });
+    } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleRunAB = async () => {
+    if (!currentProject || !modelId || !selectedAdapter || !abPrompt.trim() || isABRunning || isGenerating) {
+      return;
+    }
+
+    const prompt = abPrompt.trim();
+    const mode = resolveABMode();
+
+    setIsABRunning(true);
+
+    try {
+      const baseRequestId = createRequestId();
+      const tunedRequestId = createRequestId();
+
+      let baseResult: ABRunResult;
+      let tunedResult: ABRunResult;
+
+      if (mode === "parallel") {
+        [baseResult, tunedResult] = await Promise.all([
+          runInference({
+            prompt,
+            adapterPath: null,
+            requestId: baseRequestId,
+          }),
+          runInference({
+            prompt,
+            adapterPath: selectedAdapter,
+            requestId: tunedRequestId,
+          }),
+        ]);
+      } else {
+        baseResult = await runInference({
+          prompt,
+          adapterPath: null,
+          requestId: baseRequestId,
+        });
+        tunedResult = await runInference({
+          prompt,
+          adapterPath: selectedAdapter,
+          requestId: tunedRequestId,
+        });
+      }
+
+      setABResult({
+        prompt,
+        mode,
+        base: baseResult,
+        tuned: tunedResult,
+        createdAt: Date.now(),
+      });
+    } finally {
+      setIsABRunning(false);
     }
   };
 
@@ -129,14 +285,12 @@ export function TestingPage() {
     }
   };
 
-  const [step1Open, setStep1Open] = useState(true);
+  const [step1Open, setStep1Open] = useState(false);
 
   const adapterValid = !!selectedAdapter && adapters.some((a) => a.path === selectedAdapter);
-
-  const testingSubSteps = [
-    { key: "adapter", label: t("step.adapter"), done: adapterValid },
-    { key: "test", label: t("step.test"), done: messages.length > 0 },
-  ];
+  const canRunAB = !!(adapterValid && modelId && abPrompt.trim() && !isABRunning && !isGenerating);
+  const hasABResult = !!abResult;
+  const formatDuration = (ms: number) => `${(ms / 1000).toFixed(2)}s`;
 
   if (!currentProject) {
     return (
@@ -173,10 +327,7 @@ export function TestingPage() {
         </div>
       </div>
 
-      {/* Unified Step Progress */}
-      <StepProgress subSteps={testingSubSteps} />
-
-      {/* 3.1 Select Adapter - collapsible card */}
+      {/* Adapter - collapsible card */}
       <div className="mb-3 rounded-lg border border-border bg-card">
         <button
           onClick={() => setStep1Open(!step1Open)}
@@ -186,7 +337,7 @@ export function TestingPage() {
             {step1Open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             <span className="flex items-center gap-1.5">
               {adapterValid ? <CheckCircle2 size={18} className="text-success drop-shadow-[0_0_3px_var(--success-glow)]" /> : <Circle size={18} className="text-muted-foreground/30" />}
-              3.1 {t("section.selectAdapter")}
+              {t("section.selectAdapter")}
             </span>
           </h3>
           {selectedAdapter && (
@@ -210,7 +361,7 @@ export function TestingPage() {
             {/* Collapsed: show selected adapter */}
             <button
               onClick={() => setAdapterDropdownOpen(!adapterDropdownOpen)}
-              disabled={isGenerating}
+              disabled={isGenerating || isABRunning}
               className="flex w-full items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-xs transition-colors hover:bg-accent disabled:opacity-50"
             >
               <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span>
@@ -312,8 +463,7 @@ export function TestingPage() {
       {/* Chat Messages */}
       <div
         ref={chatRef}
-        className="flex-1 overflow-y-auto space-y-4 rounded-lg border border-border bg-card p-4"
-        style={{ minHeight: "300px" }}
+        className="flex-1 min-h-[360px] overflow-y-auto space-y-4 rounded-lg border border-border bg-card p-4"
       >
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center py-16">
@@ -361,16 +511,116 @@ export function TestingPage() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={t("chat.placeholder")}
-          rows={1}
-          className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          rows={3}
+          className="flex-1 min-h-[96px] resize-y rounded-md border border-input bg-background px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         />
         <button
           onClick={handleSend}
-          disabled={!input.trim() || isGenerating}
+          disabled={!input.trim() || isGenerating || isABRunning}
           className="rounded-md bg-primary px-4 py-2.5 text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
           <Send size={16} />
         </button>
+      </div>
+
+      {/* Advanced A/B (on-demand) */}
+      <div className="mt-3 rounded-lg border border-border bg-card">
+        <button
+          onClick={() => setAdvancedABOpen(!advancedABOpen)}
+          className="flex w-full items-center justify-between p-4"
+        >
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            {advancedABOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            <GitCompare size={14} />
+            {t("ab.advancedTitle")}
+          </h3>
+          <span className="text-[11px] text-muted-foreground">{t("ab.advancedTip")}</span>
+        </button>
+
+        {advancedABOpen && (
+          <div className="space-y-3 border-t border-border p-4">
+            <p className="text-xs text-muted-foreground">{t("ab.hint")}</p>
+
+            <textarea
+              value={abPrompt}
+              onChange={(e) => setABPrompt(e.target.value)}
+              placeholder={t("ab.promptPlaceholder")}
+              rows={3}
+              className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+
+            <div className="flex flex-wrap items-center gap-2">
+              {(["auto", "sequential", "parallel"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setABMode(mode)}
+                  disabled={isABRunning || isGenerating}
+                  className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-50 ${
+                    abMode === mode
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border text-muted-foreground hover:bg-accent"
+                  }`}
+                >
+                  {t(`ab.mode.${mode}`)}
+                </button>
+              ))}
+
+              <button
+                onClick={handleRunAB}
+                disabled={!canRunAB}
+                className="ml-auto rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {isABRunning ? t("ab.running") : t("ab.run")}
+              </button>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground">{t(`ab.modeDesc.${abMode}`)}</p>
+
+            {!adapterValid && <p className="text-xs text-warning">{t("ab.needAdapter")}</p>}
+
+            {hasABResult && abResult && (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  {t("ab.modeUsed", { mode: t(`ab.mode.${abResult.mode}`) })}
+                </p>
+
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-md border border-border/70 bg-background/60 p-3">
+                    <p className="text-xs font-semibold text-foreground">{t("ab.model.base")}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {t("ab.metrics.duration", { value: formatDuration(abResult.base.durationMs) })}
+                      {" · "}
+                      {t("ab.metrics.tokens", { value: abResult.base.tokens })}
+                      {" · "}
+                      {t("ab.metrics.tps", { value: abResult.base.tokensPerSec.toFixed(2) })}
+                    </p>
+                    {abResult.base.error ? (
+                      <p className="mt-2 text-xs text-destructive">{abResult.base.error}</p>
+                    ) : (
+                      <pre className="mt-2 whitespace-pre-wrap text-xs text-foreground">{abResult.base.response || t("ab.emptyResponse")}</pre>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border border-success/40 bg-success/5 p-3">
+                    <p className="text-xs font-semibold text-success">{t("ab.model.tuned")}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {t("ab.metrics.duration", { value: formatDuration(abResult.tuned.durationMs) })}
+                      {" · "}
+                      {t("ab.metrics.tokens", { value: abResult.tuned.tokens })}
+                      {" · "}
+                      {t("ab.metrics.tps", { value: abResult.tuned.tokensPerSec.toFixed(2) })}
+                    </p>
+                    {abResult.tuned.error ? (
+                      <p className="mt-2 text-xs text-destructive">{abResult.tuned.error}</p>
+                    ) : (
+                      <pre className="mt-2 whitespace-pre-wrap text-xs text-foreground">{abResult.tuned.response || t("ab.emptyResponse")}</pre>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

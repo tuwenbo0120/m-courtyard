@@ -15,6 +15,7 @@
   "gen.ai_response": "🤖 AI返回({length}字): {preview}",
   "gen.style_rejected": "⚠️ 风格模式质量检测：output与原文相似度过高({similarity})，已跳过",
   "gen.lang_mismatch": "⚠️ 语言不一致：原文脚本={src}，输出脚本={out}，已跳过",
+  "gen.lang_mismatch_keep_small": "⚠️ 语言不一致：原文脚本={src}，输出脚本={out}；当前为小样本批次，保留该条避免整批失败",
   "gen.progress_style": "已生成 {success} 条（{failed} 失败，{rejected} 相似度过高）",
   "gen.success": "✅ 成功! 已累计 {count} 条\n   Q: {preview}...",
   "gen.json_mismatch": "⚠️ JSON字段不匹配: {keys}",

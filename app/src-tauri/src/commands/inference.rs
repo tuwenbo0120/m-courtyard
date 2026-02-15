@@ -1,17 +1,17 @@
 use tauri::Emitter;
 use crate::python::PythonExecutor;
-use crate::fs::ProjectDirManager;
 
 #[tauri::command]
 pub async fn start_inference(
     app: tauri::AppHandle,
-    project_id: String,
+    _project_id: String,
     prompt: String,
     model: String,
     adapter_path: Option<String>,
     max_tokens: Option<u32>,
     temperature: Option<f64>,
     lang: Option<String>,
+    request_id: Option<String>,
 ) -> Result<(), String> {
     let executor = PythonExecutor::default();
     if !executor.is_ready() {
@@ -24,32 +24,12 @@ pub async fn start_inference(
         return Err(format!("Inference script not found at: {}", script.display()));
     }
 
-    // Resolve adapter path if not provided — use latest adapter
-    let resolved_adapter = match adapter_path {
-        Some(p) if !p.is_empty() => Some(p),
-        _ => {
-            let dir_manager = ProjectDirManager::new();
-            let adapters_dir = dir_manager.project_path(&project_id).join("adapters");
-            if adapters_dir.exists() {
-                // Find the most recent adapter directory
-                std::fs::read_dir(&adapters_dir)
-                    .ok()
-                    .and_then(|entries| {
-                        entries
-                            .filter_map(|e| e.ok())
-                            .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
-                            .max_by_key(|e| e.metadata().ok().and_then(|m| m.modified().ok()))
-                            .map(|e| e.path().to_string_lossy().to_string())
-                    })
-            } else {
-                None
-            }
-        }
-    };
+    let resolved_adapter = adapter_path.filter(|p| !p.is_empty());
 
     let python_bin = executor.python_bin().clone();
     let max_tok = max_tokens.unwrap_or(512);
     let temp = temperature.unwrap_or(0.7);
+    let req_id = request_id.unwrap_or_default();
 
     tokio::spawn(async move {
         let mut args = vec![
@@ -98,7 +78,15 @@ pub async fn start_inference(
                     let reader = BufReader::new(stdout);
                     let mut lines = reader.lines();
                     while let Ok(Some(line)) = lines.next_line().await {
-                        if let Ok(event) = serde_json::from_str::<serde_json::Value>(&line) {
+                        if let Ok(mut event) = serde_json::from_str::<serde_json::Value>(&line) {
+                            if !req_id.is_empty() {
+                                if let Some(obj) = event.as_object_mut() {
+                                    obj.insert(
+                                        "request_id".to_string(),
+                                        serde_json::Value::String(req_id.clone()),
+                                    );
+                                }
+                            }
                             let event_type = event["type"].as_str().unwrap_or("unknown");
                             let _ = app.emit(&format!("inference:{}", event_type), &event);
                         }
@@ -118,20 +106,23 @@ pub async fn start_inference(
                             };
                             let msg = stderr_msg.unwrap_or_else(|| "Inference process failed".to_string());
                             let _ = app.emit("inference:error", serde_json::json!({
-                                "message": msg
+                                "message": msg,
+                                "request_id": req_id
                             }));
                         }
                     }
                     Err(e) => {
                         let _ = app.emit("inference:error", serde_json::json!({
-                            "message": e.to_string()
+                            "message": e.to_string(),
+                            "request_id": req_id
                         }));
                     }
                 }
             }
             Err(e) => {
                 let _ = app.emit("inference:error", serde_json::json!({
-                    "message": e.to_string()
+                    "message": e.to_string(),
+                    "request_id": req_id
                 }));
             }
         }

@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-02-15
+
+### Fixed
+- **Chat Mode Generation Failure** (BUG-063): Fixed `Generation exited with code 1` for chat mode — increased `num_predict` from 2048→4096 and added truncated JSON recovery that collects inner `{role, content}` objects into conversations array
+- **Dataset List Empty After Error** (BUG-064): `dataset:error` event handler now calls `_reloadFiles()` to restore historical datasets
+- **Dataset List Cleared During Generation** (BUG-068): Removed `setDatasetVersions([])` from `startGenerationStep` — existing datasets stay visible during AI generation
+- **Segment Preview Stale Data** (BUG-054): `preview_clean_segments` now validates against `segments_manifest.json` file signatures; only shows segments matching current raw files
+- **Ollama Single-Segment Failure** (BUG-055): Added multilingual field normalization (`问题/回答` → `question/answer`), relaxed key-value extraction fallback, and small-batch language mismatch tolerance
+- **AI Log Language Mismatch** (BUG-056): Switched from closure-captured `i18n.language` to global `i18nGlobal.language` for reliable language detection
+- **Cleaned Data Isolation** (BUG-057): `start_cleaning` now deletes entire `cleaned/` directory before rebuilding to prevent stale data
+- **Training Stop Loss Display** (BUG-046): Fixed empty loss state text after stopping training
+- **Training Auto-Scroll** (BUG-047): Auto-scroll to top on training completion
+- **Training Summary Save Button** (BUG-048): Removed invalid save button, kept copy and system share only
+
+### Added
+- **Smart Segmentation Preview**: Content-aware segmentation with `segments_manifest.json` validation for data consistency
+- **Expandable Dataset Details** (BUG-059): Click to expand dataset items showing source files, generation type, method, train/valid counts with i18n labels
+- **NEW Badge for Latest Dataset** (BUG-060): Theme-consistent text-only badge marking the most recently generated dataset
+- **Dataset List Pagination** (BUG-061): 10 items per page with navigation controls
+- **Inference Request ID**: Added `request_id` parameter to `start_inference` for concurrent request disambiguation
+
+### Changed
+- **Right Panel Redesign** (BUG-062): Renamed to "Data Preview" with consistent card styling matching left panel
+- **Train/Valid Labels** (BUG-065, BUG-066): Moved from collapsed row to expanded details with descriptive i18n labels ("训练集 (train)" / "验证集 (valid)")
+- **NEW Badge Style** (BUG-067): Removed Sparkles icon, uses `success` color token for theme consistency
+- **Testing Page UX** (BUG-049~053): A/B mode moved to advanced collapsible, taller input, adapter collapsed by default, timeline removed, mode explanation text added
+- **Auto-Scroll to Datasets** (BUG-058): Generation completion triggers smooth scroll to 1.4 section
+
 ## [0.4.0] - 2026-02-14
 
 ### Added
@@ -90,6 +118,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Actions CI**: Automated .dmg build and release on tag push
 - **Discord Integration**: Automated release notifications via webhook
 
+[0.4.1]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.1
+[0.4.0]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.1.0

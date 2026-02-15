@@ -85,24 +85,67 @@
     "versionCount": "{{count}} dataset version(s)",
     "trainCount": "{{count}} samples",
     "noVersions": "No datasets yet, generate one first",
-    "legacy": "Legacy Dataset"
+    "legacy": "Legacy Dataset",
+    "sourceFiles": "Source files",
+    "genType": "Type",
+    "genMethod": "Method",
+    "methodOllama": "AI Generation ({{model}})",
+    "methodBuiltin": "Built-in Rules",
+    "trainSet": "Training set (train)",
+    "validSet": "Validation set (valid)",
+    "samples": "{{count}} samples",
+    "new": "NEW",
+    "page": "Page {{current}} / {{total}}",
+    "prevPage": "Previous",
+    "nextPage": "Next"
   },
   "addFile": "Add Files",
   "addFolder": "Add Folder",
   "selectFolder": "Select Folder",
   "datasetReady": "Dataset Ready — Go to Training",
-  "aiLog": "AI Generation Log",
+  "aiLog": "Data Preview",
   "connectingAI": "Connecting to AI model...",
+  "validation": {
+    "needFiles": "Please import data files first",
+    "needMethod": "Please select a generation method first",
+    "needModel": "Please select an AI model first",
+    "needMode": "Please select a generation type first"
+  },
   "step": {
     "import": "Import",
     "add": "Add",
     "clean": "Clean",
     "method": "Method",
     "type": "Type",
+    "segment": "Segment",
     "generating": "Generating",
     "done": "Done",
     "generate": "Generate",
     "train": "Train",
     "goToTrain": "Dataset Ready — Go to Training"
+  },
+  "segment": {
+    "title": "Smart Segmentation Preview (Auto)",
+    "hint": "The system auto-matches a segmentation strategy by file type and refreshes this preview after cleaning.",
+    "loading": "Loading segment preview...",
+    "empty": "No segments yet. Run cleaning or start generation first.",
+    "strategyLabel": "Primary strategy: {{strategy}}",
+    "itemLabel": "Segment #{{id}}",
+    "chars": "{{count}} chars",
+    "lines": "{{count}} lines",
+    "source": "Source: {{name}}",
+    "summary": {
+      "total": "Total segments",
+      "avg": "Average length",
+      "range": "Length range",
+      "tooShort": "Short",
+      "tooLong": "Long"
+    },
+    "strategy": {
+      "markdown_recursive": "Markdown-aware chunking",
+      "code_aware": "Code-aware chunking",
+      "fixed_length": "Fixed-length chunking",
+      "paragraph_balanced": "Paragraph-balanced chunking"
+    }
   }
 }

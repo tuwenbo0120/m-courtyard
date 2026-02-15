@@ -274,5 +274,4 @@ If you find M-Courtyard useful:
 
 ## Star History
 
-<!-- TODO: Uncomment after getting initial stars -->
-<!-- [![Star History Chart](https://api.star-history.com/svg?repos=Mcourtyard/m-courtyard&type=Date)](https://star-history.com/#Mcourtyard/m-courtyard&Date) -->
+[![Star History Chart](https://api.star-history.com/svg?repos=Mcourtyard/m-courtyard&type=Date)](https://star-history.com/#Mcourtyard/m-courtyard&Date)

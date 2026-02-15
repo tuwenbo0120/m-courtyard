@@ -1,6 +1,7 @@
 use tauri::Emitter;
 use crate::fs::ProjectDirManager;
 use crate::python::PythonExecutor;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 static GENERATION_PID: AtomicU32 = AtomicU32::new(0);
@@ -37,6 +38,13 @@ pub async fn start_cleaning(
     if !project_path.join("raw").exists() {
         return Err("No raw data directory found. Import files first.".into());
     }
+
+    // Clear cleaned/ directory before re-cleaning to ensure data isolation
+    let cleaned_dir = project_path.join("cleaned");
+    if cleaned_dir.exists() {
+        let _ = std::fs::remove_dir_all(&cleaned_dir);
+    }
+    let _ = std::fs::create_dir_all(&cleaned_dir);
 
     let scripts_dir = PythonExecutor::scripts_dir();
     let script = scripts_dir.join("clean_data.py");
@@ -190,6 +198,29 @@ pub async fn generate_dataset(
     let dataset_root = project_path.join("dataset");
     let output_dir = dataset_root.join(&timestamp);
     let _ = std::fs::create_dir_all(&output_dir);
+
+    // Save generation metadata (raw files, mode, source, model)
+    let raw_dir = project_path.join("raw");
+    let raw_file_names: Vec<String> = std::fs::read_dir(&raw_dir)
+        .ok()
+        .map(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().is_file())
+                .map(|e| e.file_name().to_string_lossy().to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+    let meta = serde_json::json!({
+        "raw_files": raw_file_names,
+        "mode": &mode,
+        "source": &source,
+        "model": if source != "builtin" { &model } else { "" },
+    });
+    let _ = std::fs::write(
+        output_dir.join("meta.json"),
+        serde_json::to_string_pretty(&meta).unwrap_or_default(),
+    );
 
     let ts_clone = timestamp.clone();
 
@@ -353,6 +384,10 @@ pub struct DatasetVersionInfo {
     pub train_size: u64,       // bytes
     pub valid_size: u64,       // bytes
     pub created: String,       // human-readable date
+    pub raw_files: Vec<String>,
+    pub mode: String,
+    pub source: String,
+    pub model: String,
 }
 
 /// List all dataset versions for a project, sorted newest first
@@ -391,6 +426,26 @@ pub fn list_dataset_versions(
         // Parse timestamp from directory name for display
         let created = parse_timestamp_display(&dir_name);
 
+        // Read metadata if available
+        let meta_path = path.join("meta.json");
+        let (raw_files, gen_mode, gen_source, gen_model) = if meta_path.exists() {
+            match std::fs::read_to_string(&meta_path) {
+                Ok(content) => {
+                    let m: serde_json::Value = serde_json::from_str(&content).unwrap_or_default();
+                    let rf = m["raw_files"].as_array()
+                        .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                        .unwrap_or_default();
+                    let mode = m["mode"].as_str().unwrap_or("").to_string();
+                    let source = m["source"].as_str().unwrap_or("").to_string();
+                    let model = m["model"].as_str().unwrap_or("").to_string();
+                    (rf, mode, source, model)
+                }
+                Err(_) => (vec![], String::new(), String::new(), String::new()),
+            }
+        } else {
+            (vec![], String::new(), String::new(), String::new())
+        };
+
         versions.push(DatasetVersionInfo {
             version: dir_name,
             path: path.to_string_lossy().to_string(),
@@ -399,6 +454,10 @@ pub fn list_dataset_versions(
             train_size,
             valid_size,
             created,
+            raw_files,
+            mode: gen_mode,
+            source: gen_source,
+            model: gen_model,
         });
     }
 
@@ -429,6 +488,10 @@ pub fn list_dataset_versions(
             train_size,
             valid_size,
             created,
+            raw_files: vec![],
+            mode: String::new(),
+            source: String::new(),
+            model: String::new(),
         });
     }
 
@@ -478,6 +541,258 @@ pub struct RawFileSample {
     pub ext: String,
     pub size: u64,
     pub snippet: String,
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct SegmentPreviewItem {
+    pub id: usize,
+    pub text_preview: String,
+    pub char_count: usize,
+    pub line_count: usize,
+    pub strategy: String,
+    pub source_file: String,
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct SegmentPreviewSummary {
+    pub total_segments: usize,
+    pub avg_chars: usize,
+    pub min_chars: usize,
+    pub max_chars: usize,
+    pub short_segments: usize,
+    pub long_segments: usize,
+    pub primary_strategy: String,
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct SegmentPreviewResponse {
+    pub summary: SegmentPreviewSummary,
+    pub items: Vec<SegmentPreviewItem>,
+}
+
+impl SegmentPreviewResponse {
+    fn empty() -> Self {
+        Self {
+            summary: SegmentPreviewSummary {
+                total_segments: 0,
+                avg_chars: 0,
+                min_chars: 0,
+                max_chars: 0,
+                short_segments: 0,
+                long_segments: 0,
+                primary_strategy: "paragraph_balanced".to_string(),
+            },
+            items: vec![],
+        }
+    }
+}
+
+/// Read cleaned segments and return a compact visual preview payload.
+#[tauri::command]
+pub fn preview_clean_segments(
+    project_id: String,
+    limit: Option<usize>,
+) -> Result<SegmentPreviewResponse, String> {
+    let dir_manager = ProjectDirManager::new();
+    let project_path = dir_manager.project_path(&project_id);
+    let raw_dir = project_path.join("raw");
+    let segments_path = project_path
+        .join("cleaned")
+        .join("segments.jsonl");
+    let manifest_path = project_path
+        .join("cleaned")
+        .join("segments_manifest.json");
+
+    let mut raw_names: HashSet<String> = HashSet::new();
+    let mut raw_signatures: Vec<(String, u64, u64)> = Vec::new();
+    let mut newest_raw_modified = 0u64;
+
+    if raw_dir.exists() {
+        if let Ok(entries) = std::fs::read_dir(&raw_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if !path.is_file() {
+                    continue;
+                }
+                let Ok(meta) = entry.metadata() else {
+                    continue;
+                };
+                let name = entry.file_name().to_string_lossy().to_string();
+                let size_bytes = meta.len();
+                let modified_ts = meta
+                    .modified()
+                    .ok()
+                    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+
+                newest_raw_modified = newest_raw_modified.max(modified_ts);
+                raw_names.insert(name.clone());
+                raw_signatures.push((name, size_bytes, modified_ts));
+            }
+        }
+    }
+
+    if raw_names.is_empty() {
+        return Ok(SegmentPreviewResponse::empty());
+    }
+
+    raw_signatures.sort_by(|a, b| a.0.cmp(&b.0));
+
+    if !segments_path.exists() {
+        return Ok(SegmentPreviewResponse::empty());
+    }
+
+    let segments_modified = std::fs::metadata(&segments_path)
+        .ok()
+        .and_then(|m| m.modified().ok())
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    if manifest_path.exists() {
+        let Ok(manifest_content) = std::fs::read_to_string(&manifest_path) else {
+            return Ok(SegmentPreviewResponse::empty());
+        };
+        let Ok(manifest_json) = serde_json::from_str::<serde_json::Value>(&manifest_content) else {
+            return Ok(SegmentPreviewResponse::empty());
+        };
+        let Some(files) = manifest_json.get("raw_files").and_then(|v| v.as_array()) else {
+            return Ok(SegmentPreviewResponse::empty());
+        };
+
+        let mut manifest_signatures: Vec<(String, u64, u64)> = Vec::new();
+        for file in files {
+            let Some(name) = file.get("name").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            if name.trim().is_empty() {
+                continue;
+            }
+            let size_bytes = file
+                .get("size_bytes")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            let modified_ts = file
+                .get("modified_ts")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            manifest_signatures.push((name.to_string(), size_bytes, modified_ts));
+        }
+        manifest_signatures.sort_by(|a, b| a.0.cmp(&b.0));
+
+        if manifest_signatures != raw_signatures {
+            return Ok(SegmentPreviewResponse::empty());
+        }
+    } else if newest_raw_modified > segments_modified {
+        return Ok(SegmentPreviewResponse::empty());
+    }
+
+    let content = std::fs::read_to_string(&segments_path)
+        .map_err(|e| format!("Failed to read segments.jsonl: {}", e))?;
+
+    let max_items = limit.unwrap_or(8).clamp(1, 50);
+    let mut total_segments = 0usize;
+    let mut total_chars = 0usize;
+    let mut min_chars = usize::MAX;
+    let mut max_chars = 0usize;
+    let mut short_segments = 0usize;
+    let mut long_segments = 0usize;
+    let mut strategy_count: HashMap<String, usize> = HashMap::new();
+    let mut items: Vec<SegmentPreviewItem> = Vec::new();
+
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        let Ok(obj) = serde_json::from_str::<serde_json::Value>(line) else {
+            continue;
+        };
+
+        let text = obj
+            .get("text")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim();
+
+        if text.is_empty() {
+            continue;
+        }
+
+        let source_file = obj
+            .get("source_file")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        if source_file.is_empty() || !raw_names.contains(source_file.as_str()) {
+            continue;
+        }
+
+        total_segments += 1;
+        let char_count = text.chars().count();
+        total_chars += char_count;
+        min_chars = min_chars.min(char_count);
+        max_chars = max_chars.max(char_count);
+        if char_count < 160 {
+            short_segments += 1;
+        }
+        if char_count > 1800 {
+            long_segments += 1;
+        }
+
+        let strategy = obj
+            .get("strategy")
+            .and_then(|v| v.as_str())
+            .unwrap_or("paragraph_balanced")
+            .to_string();
+        *strategy_count.entry(strategy.clone()).or_insert(0) += 1;
+
+        if items.len() >= max_items {
+            continue;
+        }
+
+        let line_count = text.lines().filter(|l| !l.trim().is_empty()).count().max(1);
+        let id = obj
+            .get("id")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as usize)
+            .unwrap_or(total_segments.saturating_sub(1));
+
+        items.push(SegmentPreviewItem {
+            id,
+            text_preview: truncate_preview(text, 180),
+            char_count,
+            line_count,
+            strategy,
+            source_file,
+        });
+    }
+
+    if total_segments == 0 {
+        return Ok(SegmentPreviewResponse::empty());
+    }
+
+    let primary_strategy = strategy_count
+        .into_iter()
+        .max_by_key(|(_, count)| *count)
+        .map(|(key, _)| key)
+        .unwrap_or_else(|| "paragraph_balanced".to_string());
+
+    Ok(SegmentPreviewResponse {
+        summary: SegmentPreviewSummary {
+            total_segments,
+            avg_chars: total_chars / total_segments,
+            min_chars,
+            max_chars,
+            short_segments,
+            long_segments,
+            primary_strategy,
+        },
+        items,
+    })
 }
 
 /// Open the dataset root directory in Finder
@@ -548,6 +863,21 @@ fn script_supports_lang_arg(script_path: &std::path::Path) -> bool {
     std::fs::read_to_string(script_path)
         .map(|s| s.contains("--lang") || s.contains("add_lang_arg"))
         .unwrap_or(false)
+}
+
+fn truncate_preview(text: &str, max_chars: usize) -> String {
+    let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
+    let mut out = String::new();
+
+    for (idx, ch) in normalized.chars().enumerate() {
+        if idx >= max_chars {
+            out.push('…');
+            return out;
+        }
+        out.push(ch);
+    }
+
+    out
 }
 
 fn parse_timestamp_display(ts: &str) -> String {
