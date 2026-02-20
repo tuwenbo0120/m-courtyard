@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use crate::python::PythonExecutor;
+use crate::fs::ProjectDirManager;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct AppConfig {
@@ -83,6 +84,7 @@ pub struct AppConfigResponse {
     pub modelscope_custom: bool,
     pub ollama_custom: bool,
     pub export_path: Option<String>,
+    pub default_export_root: String,
     pub ollama_installed: bool,
     pub hf_source: String,
 }
@@ -92,6 +94,11 @@ pub fn get_app_config() -> Result<AppConfigResponse, String> {
     let config = load_config();
     let resolved = resolve_model_paths();
     let ollama_installed = PythonExecutor::find_ollama().is_some();
+    let default_export_root = ProjectDirManager::new()
+        .project_path("__template__")
+        .parent()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| "./projects".to_string());
     Ok(AppConfigResponse {
         huggingface: resolved.huggingface.to_string_lossy().to_string(),
         modelscope: resolved.modelscope.to_string_lossy().to_string(),
@@ -100,6 +107,7 @@ pub fn get_app_config() -> Result<AppConfigResponse, String> {
         modelscope_custom: config.model_paths.modelscope.is_some(),
         ollama_custom: config.model_paths.ollama.is_some(),
         export_path: config.export_path,
+        default_export_root,
         ollama_installed,
         hf_source: config.hf_source,
     })

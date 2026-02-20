@@ -19,6 +19,7 @@ import argparse
 import glob
 import json
 import os
+import shutil
 import struct
 import subprocess
 import sys
@@ -165,12 +166,31 @@ def clean_safetensors_for_ollama(model_dir):
 
     Returns (kept_count, removed_count).
     """
-    st_files = glob.glob(os.path.join(model_dir, "*.safetensors"))
+    # If a consolidated model.safetensors exists, stale shard files from older
+    # export attempts must be removed, otherwise Ollama import may see duplicate
+    # tensor names when converting to GGUF.
+    merged_file = os.path.join(model_dir, "model.safetensors")
+    shard_files = sorted(glob.glob(os.path.join(model_dir, "model-*-of-*.safetensors")))
+    if os.path.isfile(merged_file) and shard_files:
+        for fp in shard_files:
+            try:
+                os.remove(fp)
+            except OSError:
+                pass
+        shard_index = os.path.join(model_dir, "model.safetensors.index.json")
+        if os.path.isfile(shard_index):
+            try:
+                os.remove(shard_index)
+            except OSError:
+                pass
+
+    st_files = sorted(glob.glob(os.path.join(model_dir, "*.safetensors")))
     if not st_files:
         return 0, 0
 
     total_removed = 0
     total_kept = 0
+    seen_tensor_names = set()
 
     for fpath in st_files:
         with open(fpath, "rb") as f:
@@ -188,9 +208,13 @@ def clean_safetensors_for_ollama(model_dir):
         for name, meta in header.items():
             if meta.get("dtype", "") not in OLLAMA_OK_DTYPES:
                 to_remove.add(name)
+                continue
+            if name in seen_tensor_names:
+                to_remove.add(name)
 
         if not to_remove:
             total_kept += len(header)
+            seen_tensor_names.update(header.keys())
             continue
 
         # Rebuild file keeping only Ollama-compatible tensors
@@ -211,6 +235,15 @@ def clean_safetensors_for_ollama(model_dir):
                 "data_offsets": [start, len(new_data)],
             }
             total_kept += 1
+            seen_tensor_names.add(name)
+
+        if not kept:
+            # This shard became empty after filtering unsupported/duplicate tensors.
+            try:
+                os.remove(fpath)
+            except OSError:
+                pass
+            continue
 
         if metadata is not None:
             kept["__metadata__"] = metadata
@@ -317,6 +350,30 @@ def create_ollama_model(model_name, model_path, model_format, quantization="q4")
             pass
 
 
+def verify_ollama_model_runtime(model_name):
+    """Run a short runtime smoke test to ensure the created model is loadable."""
+    prompts = [
+        "Reply with exactly one word: OK",
+        "Say OK",
+    ]
+    last_error = ""
+
+    for prompt in prompts:
+        ok, stdout, stderr = run_cli(
+            ["ollama", "run", "--nowordwrap", model_name, prompt], timeout=45
+        )
+        text = (stdout or "").strip()
+        if ok:
+            return True, text[:120] if text else "(model loaded; empty response)"
+
+        last_error = (stderr or stdout or "Model returned no output").strip()
+        # Load errors are deterministic; no need to keep retrying prompts.
+        if "unable to load model" in last_error.lower():
+            break
+
+    return False, last_error
+
+
 # ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
@@ -327,16 +384,23 @@ def main():
     parser.add_argument("--model-name", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--quantization", default="q4", choices=["q4", "q8", "f16"])
+    parser.add_argument("--ollama-models-dir", default="")
     add_lang_arg(parser)
     args = parser.parse_args()
 
     init_i18n(args.lang)
 
-    # Step 1: Check Ollama
-    if not check_ollama():
-        emit("error", message=t("export.ollama_not_found"))
+    try:
+        _run(args)
+    except Exception as exc:
+        import traceback
+        emit("error", message=f"Unexpected crash: {traceback.format_exc()[-800:]}")
         sys.exit(1)
-    emit("progress", step="check", desc="Ollama detected")
+
+
+def _run(args):
+    # Step 1: signal start (Ollama availability already verified by the frontend)
+    emit("progress", step="check", desc="Starting export pipeline")
 
     # Step 2: Resolve paths
     resolved = resolve_model_path(args.model)
@@ -359,6 +423,10 @@ def main():
          desc=f"Adapter: {args.adapter_path} ({len(adapter_files)} weight files)")
 
     fused_dir = os.path.join(args.output_dir, "fused")
+    if os.path.isdir(fused_dir):
+        # The export target directory is reused per project. Clean it first so
+        # stale files from previous runs cannot pollute the current export.
+        shutil.rmtree(fused_dir, ignore_errors=True)
     os.makedirs(fused_dir, exist_ok=True)
 
     # Step 3: Try GGUF export first (fast path for Llama/Mistral/Mixtral)
@@ -407,9 +475,26 @@ def main():
     )
 
     if result is True:
+        emit("progress", step="verify", desc=t("export.runtime_verify"))
+        ok, verify_info = verify_ollama_model_runtime(args.model_name)
+        if not ok:
+            emit("error", message=t("export.create_fail", error=t("export.runtime_verify_fail", error=verify_info[-500:])) )
+            sys.exit(1)
+
+        # Use the daemon-aware path resolved by Rust when provided.
+        ollama_models = (args.ollama_models_dir or "").strip() or os.environ.get(
+            "OLLAMA_MODELS",
+            os.path.expanduser("~/.ollama/models")
+        )
+        ollama_models = os.path.abspath(os.path.expanduser(ollama_models))
+        manifest_dir = os.path.join(
+            ollama_models, "manifests", "registry.ollama.ai", "library", args.model_name
+        )
         emit("complete",
              model_name=args.model_name,
-             output_dir=model_output)
+             output_dir=model_output,
+             ollama_dir=ollama_models,
+             manifest_dir=manifest_dir)
     elif isinstance(result, tuple):
         _, stderr = result
         emit("error",
@@ -422,3 +507,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

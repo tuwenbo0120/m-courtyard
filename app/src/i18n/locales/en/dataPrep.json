@@ -60,7 +60,7 @@
     "downloadHint": "Recommended models for dataset generation:",
     "downloadBtn": "Download",
     "addModelPath": "Add model path manually",
-    "addModelPlaceholder": "Enter local model path (e.g. /Users/.../model)",
+    "addModelPlaceholder": "Enter local model path (e.g. /path/to/model)",
     "addModelBtn": "Add",
     "refreshModels": "Refresh model list",
     "builtinHint": "Uses rule-based extraction to generate training data. No AI model needed, fast but limited quality.",

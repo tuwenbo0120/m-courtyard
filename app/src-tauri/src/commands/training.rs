@@ -407,10 +407,11 @@ pub fn scan_local_models() -> Result<Vec<LocalModelInfo>, String> {
     // 2. Scan ModelScope cache
     scan_hf_style_cache(&resolved.modelscope, "modelscope", &mut models);
 
-    // 3. Scan Ollama models
-    let ollama_lib = resolved.ollama
+    // 3. Scan the single effective Ollama path (daemon-aware: uses actual running path)
+    let ollama_dir = crate::commands::environment::resolve_ollama_models_dir();
+    let ollama_lib = ollama_dir
         .join("manifests").join("registry.ollama.ai").join("library");
-    scan_ollama_models(&ollama_lib, &resolved.ollama, &mut models);
+    scan_ollama_models(&ollama_lib, &ollama_dir, "ollama", &mut models);
 
     // MLX models first, then by source, then by name
     models.sort_by(|a, b| {
@@ -475,7 +476,12 @@ fn scan_hf_style_cache(cache_dir: &std::path::Path, source: &str, models: &mut V
     }
 }
 
-fn scan_ollama_models(library_dir: &std::path::Path, ollama_base: &std::path::Path, models: &mut Vec<LocalModelInfo>) {
+fn scan_ollama_models(
+    library_dir: &std::path::Path,
+    ollama_base: &std::path::Path,
+    source: &str,
+    models: &mut Vec<LocalModelInfo>,
+) {
     if !library_dir.exists() { return; }
     let Ok(entries) = std::fs::read_dir(library_dir) else { return; };
 
@@ -501,7 +507,7 @@ fn scan_ollama_models(library_dir: &std::path::Path, ollama_base: &std::path::Pa
                     path: ollama_models_dir.to_string_lossy().to_string(),
                     size_mb: 0, // Ollama blob sizes require manifest parsing
                     is_mlx: false,
-                    source: "ollama".to_string(),
+                    source: source.to_string(),
                 });
             }
         }
@@ -548,7 +554,7 @@ pub fn validate_model_path(path: String) -> Result<bool, String> {
 pub fn open_model_cache(source: Option<String>) -> Result<(), String> {
     let resolved = crate::commands::config::resolve_model_paths();
     let target = match source.as_deref() {
-        Some("ollama") => resolved.ollama,
+        Some("ollama") => crate::commands::environment::resolve_ollama_models_dir(),
         Some("modelscope") => resolved.modelscope,
         _ => resolved.huggingface,
     };
@@ -559,6 +565,24 @@ pub fn open_model_cache(source: Option<String>) -> Result<(), String> {
         .arg(&target)
         .spawn()
         .map_err(|e| format!("Failed to open folder: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_adapter(adapter_path: String) -> Result<(), String> {
+    let path = std::path::Path::new(&adapter_path);
+    if !path.exists() {
+        return Err(format!("Adapter not found: {}", adapter_path));
+    }
+    if !path.is_dir() {
+        return Err("Adapter path must be a directory".to_string());
+    }
+    // Safety: must contain "adapters" somewhere in the path to avoid accidental deletion
+    if !adapter_path.contains("/adapters/") {
+        return Err("Path does not look like an adapter directory".to_string());
+    }
+    std::fs::remove_dir_all(path)
+        .map_err(|e| format!("Failed to delete adapter: {}", e))?;
     Ok(())
 }
 

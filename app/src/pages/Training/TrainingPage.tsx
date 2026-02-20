@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
-import { Play, Square, Gauge, Layers, Target, Gem, BarChart3, FileText, FolderOpen, Copy, Check, ArrowRight, Trash2, ChevronDown, ChevronRight, X, CheckCircle2, Circle, Trophy, Upload, Clock, TrendingDown, AlertTriangle } from "lucide-react";
+import { Play, Square, Gauge, Layers, Target, Gem, BarChart3, FileText, FolderOpen, Copy, Check, ArrowRight, Trash2, ChevronDown, ChevronRight, ChevronLeft, X, CheckCircle2, Circle, Trophy, Upload, Clock, TrendingDown, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProjectStore } from "@/stores/projectStore";
 import { useTrainingStore } from "@/stores/trainingStore";
@@ -285,6 +285,10 @@ interface DatasetVersionInfo {
   train_size: number;
   valid_size: number;
   created: string;
+  raw_files: string[];
+  mode: string;
+  source: string;
+  model: string;
 }
 
 export function TrainingPage() {
@@ -305,7 +309,9 @@ export function TrainingPage() {
   const [reportCopied, setReportCopied] = useState(false);
   const [datasetVersions, setDatasetVersions] = useState<DatasetVersionInfo[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<string>("");
-  const [datasetDropdownOpen, setDatasetDropdownOpen] = useState(false);
+  const [expandedDataset, setExpandedDataset] = useState<string | null>(null);
+  const [datasetPage, setDatasetPage] = useState(0);
+  const DATASETS_PER_PAGE = 10;
   const sectionStep1Ref = useRef<HTMLDivElement>(null);
   const sectionStep2Ref = useRef<HTMLDivElement>(null);
   const sectionStep3Ref = useRef<HTMLDivElement>(null);
@@ -921,54 +927,113 @@ export function TrainingPage() {
         {step2Open && (
           <div className="border-t border-border p-4 space-y-2">
             {datasetVersions.length > 0 ? (
-              <div className="relative">
-                {/* Collapsed: show selected dataset */}
-                <button
-                  onClick={() => setDatasetDropdownOpen(!datasetDropdownOpen)}
-                  disabled={status === "running"}
-                  className="flex w-full items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-xs transition-colors hover:bg-accent disabled:opacity-50"
-                >
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span>
-                  <div className="min-w-0 flex-1">
-                    {selectedDataset ? (
-                      <>
-                        <span className="font-medium text-foreground">{selectedDataset.version === "legacy" ? t("datasetLegacy") : selectedDataset.created}</span>
-                        <span className="ml-2 text-muted-foreground/60">train: {selectedDataset.train_count}</span>
-                        <span className="ml-1 text-muted-foreground/40">\u00b7 valid: {selectedDataset.valid_count}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground">{t("selectDatasetVersion")}</span>
-                    )}
-                  </div>
-                  <ChevronDown size={14} className={`shrink-0 text-muted-foreground transition-transform ${datasetDropdownOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                {/* Expanded: all options */}
-                {datasetDropdownOpen && (
-                  <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-border bg-background p-2 shadow-lg">
-                    {datasetVersions.map((v) => {
-                      const isSelected = selectedVersion === v.version;
-                      return (
+              <div className="space-y-1">
+                {(() => {
+                  const totalPages = Math.ceil(datasetVersions.length / DATASETS_PER_PAGE);
+                  const paged = datasetVersions.slice(datasetPage * DATASETS_PER_PAGE, (datasetPage + 1) * DATASETS_PER_PAGE);
+                  return (
+                    <>
+                {paged.map((v) => {
+                  const isSelected = selectedVersion === v.version;
+                  const isExpanded = expandedDataset === v.version;
+                  const modeLabel: Record<string, string> = {
+                    qa: t("dataset.modeQa"),
+                    style: t("dataset.modeStyle"),
+                    chat: t("dataset.modeChat"),
+                    instruct: t("dataset.modeInstruct"),
+                  };
+                  return (
+                    <div
+                      key={v.version}
+                      className={`rounded-md border text-xs transition-colors ${isSelected ? "border-primary" : "border-border"}`}
+                    >
+                      <div className="flex items-center gap-1.5 px-2 py-2">
+                        {/* Expand toggle */}
                         <button
-                          key={v.version}
-                          onClick={() => { setSelectedVersion(v.version); setDatasetDropdownOpen(false); }}
-                          className={`flex w-full items-center gap-2 rounded-md border px-3 py-1.5 text-left text-xs transition-colors ${
-                            isSelected
-                              ? "border-primary bg-primary/10 text-foreground"
-                              : "border-border text-muted-foreground hover:bg-accent"
-                          }`}
+                          onClick={() => setExpandedDataset(isExpanded ? null : v.version)}
+                          className="shrink-0 text-muted-foreground hover:text-foreground"
                         >
-                          {isSelected ? <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span> : <span className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/30" />}
-                          <div className="min-w-0 flex-1">
-                            <span className="font-medium text-foreground">{v.version === "legacy" ? t("datasetLegacy") : v.created}</span>
-                            <span className="ml-2 text-muted-foreground/60">train: {v.train_count}</span>
-                            <span className="ml-1 text-muted-foreground/40">\u00b7 valid: {v.valid_count}</span>
-                          </div>
+                          {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                         </button>
-                      );
-                    })}
-                  </div>
-                )}
+                        {/* Select row */}
+                        <button
+                          onClick={() => { if (status !== "running") setSelectedVersion(v.version); }}
+                          disabled={status === "running"}
+                          className="flex flex-1 items-center gap-2 text-left disabled:opacity-50"
+                        >
+                          {isSelected
+                            ? <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span>
+                            : <span className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/30" />
+                          }
+                          <span className={`font-medium ${isSelected ? "text-foreground" : "text-muted-foreground"}`}>
+                            {v.version === "legacy" ? t("datasetLegacy") : v.created}
+                          </span>
+                          <span className="ml-auto shrink-0 whitespace-nowrap text-muted-foreground/50">
+                            train: {v.train_count} · valid: {v.valid_count}
+                          </span>
+                        </button>
+                      </div>
+                      {isExpanded && (
+                        <div className="border-t border-border/50 bg-muted/10 px-4 py-2 space-y-1 text-[11px]">
+                          <div className="flex gap-2">
+                            <span className="shrink-0 text-muted-foreground">{t("dataset.trainSet")}:</span>
+                            <span className="text-foreground">{t("dataset.samples", { count: v.train_count })}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="shrink-0 text-muted-foreground">{t("dataset.validSet")}:</span>
+                            <span className="text-foreground">{t("dataset.samples", { count: v.valid_count })}</span>
+                          </div>
+                          {v.raw_files?.length > 0 && (
+                            <div className="flex gap-2">
+                              <span className="shrink-0 text-muted-foreground">{t("dataset.sourceFiles")}:</span>
+                              <span className="text-foreground break-all">{v.raw_files.join(", ")}</span>
+                            </div>
+                          )}
+                          {v.mode && (
+                            <div className="flex gap-2">
+                              <span className="shrink-0 text-muted-foreground">{t("dataset.genType")}:</span>
+                              <span className="text-foreground">{modeLabel[v.mode] || v.mode}</span>
+                            </div>
+                          )}
+                          {v.source && (
+                            <div className="flex gap-2">
+                              <span className="shrink-0 text-muted-foreground">{t("dataset.genMethod")}:</span>
+                              <span className="text-foreground">
+                                {v.source === "ollama"
+                                  ? t("dataset.methodOllama", { model: v.model || "?" })
+                                  : t("dataset.methodBuiltin")}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between pt-1">
+                        <button
+                          disabled={datasetPage === 0}
+                          onClick={() => setDatasetPage((p) => Math.max(0, p - 1))}
+                          className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"
+                        >
+                          <ChevronLeft size={12} />
+                          {t("dataset.prevPage")}
+                        </button>
+                        <span className="text-[11px] text-muted-foreground">{t("dataset.page", { current: datasetPage + 1, total: totalPages })}</span>
+                        <button
+                          disabled={datasetPage === totalPages - 1}
+                          onClick={() => setDatasetPage((p) => Math.min(totalPages - 1, p + 1))}
+                          className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"
+                        >
+                          {t("dataset.nextPage")}
+                          <ChevronRight size={12} />
+                        </button>
+                      </div>
+                    )}
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground/70">{t("noDataset")}</p>

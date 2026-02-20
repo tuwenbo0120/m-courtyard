@@ -128,6 +128,7 @@
     "rename": "Rename",
     "delete": "Delete",
     "sourceLabels": {
+      "ollama": "Ollama",
       "trained": "Trained Adapters"
     },
     "disabledReason": {
@@ -135,6 +136,7 @@
       "trainedNotBase": "LoRA adapter, not a base model",
       "adapterNoGen": "Adapters cannot be used for data generation",
       "ollamaOnly": "Only Ollama models are supported",
+      "notInDaemon": "Not available in current Ollama daemon runtime path",
       "selectAdapter": "Please select a trained adapter"
     },
     "selectExisting": "Select Existing",
@@ -169,5 +171,16 @@
     "repoIdPlaceholder": "Enter HuggingFace model ID, e.g. mlx-community/Qwen3-4B-Instruct-2507-4bit",
     "customDownload": "Custom Model ID",
     "startDownload": "Download"
+  },
+  "ollamaPathMismatch": {
+    "title": "Ollama daemon is not using your configured models path",
+    "desc": "Ollama cannot find the selected model. This usually happens because the daemon was started without loading your custom path configured in Settings. Please check and fix the path.",
+    "terminalHint": "Run the following command in Terminal, replace with your actual path, then restart Ollama:",
+    "commandExample": "launchctl setenv OLLAMA_MODELS \"/path/to/your/models\"",
+    "autoFix": "Apply configured path and restart Ollama automatically",
+    "autoFixing": "Restarting Ollama...",
+    "autoFixSuccess": "Path applied and Ollama restarted successfully. Please wait a moment then try generating again.",
+    "autoFixError": "Auto-fix failed: {{error}}",
+    "noCustomPath": "No custom path configured. Please set your Ollama models path in Settings first."
   }
 }

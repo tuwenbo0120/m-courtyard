@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
-import { Upload, Trash2, Eye, ArrowRight, FolderOpen, Square, Wand2, ChevronDown, ChevronRight, CheckCircle2, Circle, AlertTriangle, Settings, Check, AlertCircle, ChevronLeft } from "lucide-react";
+import { Upload, Trash2, Eye, ArrowRight, FolderOpen, Square, Play, ChevronDown, ChevronRight, CheckCircle2, Circle, AlertTriangle, Settings, Check, AlertCircle, ChevronLeft } from "lucide-react";
 import i18nGlobal from "@/i18n";
 import { useNavigate } from "react-router-dom";
 import { useProjectStore } from "@/stores/projectStore";
@@ -187,8 +187,12 @@ export function DataPrepPage() {
   const [importing, setImporting] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [_cleanProgress, setCleanProgress] = useState("");
+  const [autoFixing, setAutoFixing] = useState(false);
+  const [autoFixMsg, setAutoFixMsg] = useState("");
+  const [autoFixOk, setAutoFixOk] = useState(false);
   const {
     generating, genProgress, genStep, genTotal, genError, aiLogs,
+    ollamaPathMismatch,
     initListeners, setReloadFiles, clearLogs, newVersionIds, setScrollToDatasets,
   } = useGenerationStore();
   const {
@@ -470,6 +474,22 @@ export function DataPrepPage() {
       setPipelineStage("idle");
       setCleanProgress(String(e));
       autoGenAfterClean.current = false;
+    }
+  };
+
+  const handleAutoFixOllamaPath = async () => {
+    setAutoFixing(true);
+    setAutoFixMsg("");
+    setAutoFixOk(false);
+    try {
+      const appliedPath = await invoke<string>("fix_ollama_models_path");
+      setAutoFixMsg(t("ollamaPathMismatch.autoFixSuccess") + (appliedPath ? ` (${appliedPath})` : ""));
+      setAutoFixOk(true);
+    } catch (e) {
+      setAutoFixMsg(t("ollamaPathMismatch.autoFixError", { error: String(e) }));
+      setAutoFixOk(false);
+    } finally {
+      setAutoFixing(false);
     }
   };
 
@@ -1014,7 +1034,7 @@ export function DataPrepPage() {
                             : "bg-primary text-primary-foreground hover:bg-primary/90"
                         }`}
                       >
-                        <Wand2 size={14} />
+                        <Play size={14} />
                         {t("generate.button")}
                       </button>
                       {!taskCheck.allowed && (
@@ -1044,8 +1064,30 @@ export function DataPrepPage() {
                   {generating && genTotal === 0 && genProgress && (
                     <p className="text-xs text-muted-foreground">{genProgress}</p>
                   )}
-                  {genError && (
+                  {genError && !ollamaPathMismatch && (
                     <p className="text-xs text-red-400">{genError}</p>
+                  )}
+                  {ollamaPathMismatch && (
+                    <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+                      <div className="flex items-center gap-1.5 font-semibold text-amber-400 mb-1">
+                        <AlertTriangle size={13} />
+                        {t("ollamaPathMismatch.title")}
+                      </div>
+                      <p className="text-muted-foreground mb-2">{t("ollamaPathMismatch.desc")}</p>
+                      <p className="text-muted-foreground mb-1">{t("ollamaPathMismatch.terminalHint")}</p>
+                      <pre className="rounded bg-muted/60 px-2 py-1.5 font-mono text-[11px] text-foreground select-all mb-2 overflow-x-auto whitespace-pre">{t("ollamaPathMismatch.commandExample")}</pre>
+                      {autoFixMsg ? (
+                        <p className={`text-[11px] ${autoFixOk ? "text-success" : "text-red-400"}`}>{autoFixMsg}</p>
+                      ) : (
+                        <button
+                          onClick={handleAutoFixOllamaPath}
+                          disabled={autoFixing}
+                          className="mt-1 rounded-md border border-amber-500/50 bg-amber-500/20 px-3 py-1.5 text-[11px] font-medium text-amber-300 hover:bg-amber-500/30 transition-colors disabled:opacity-50"
+                        >
+                          {autoFixing ? t("ollamaPathMismatch.autoFixing") : t("ollamaPathMismatch.autoFix")}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

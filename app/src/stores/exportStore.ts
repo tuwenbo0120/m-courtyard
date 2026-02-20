@@ -15,8 +15,12 @@ interface ExportState {
   exportProgress: string;
   modelName: string;
   outputDir: string;
+  ollamaDir: string;
+  manifestDir: string;
   // Project isolation
   activeProjectId: string;
+  // Path warning: configured Ollama models path is invalid, fell back to default Ollama dir
+  pathWarning: { configuredPath: string; fallbackPath: string } | null;
 
   // Actions
   startExport: (projectId: string) => void;
@@ -26,12 +30,16 @@ interface ExportState {
   setExportProgress: (desc: string) => void;
   setModelName: (name: string) => void;
   setOutputDir: (dir: string) => void;
+  setOllamaDir: (dir: string) => void;
+  setManifestDir: (dir: string) => void;
+  setPathWarning: (w: { configuredPath: string; fallbackPath: string } | null) => void;
   clearAll: () => void;
 
   // Listener management
   _listenersReady: boolean;
+  _initPromise: Promise<void> | null;
   _unlistens: UnlistenFn[];
-  initListeners: () => void;
+  initListeners: () => Promise<void>;
 }
 
 export const useExportStore = create<ExportState>((set, get) => ({
@@ -42,11 +50,15 @@ export const useExportStore = create<ExportState>((set, get) => ({
   exportProgress: "",
   modelName: "",
   outputDir: "",
+  ollamaDir: "",
+  manifestDir: "",
   activeProjectId: "",
+  pathWarning: null,
 
   startExport: (projectId: string) => set({
     isExporting: true, result: null, exportLogs: [], currentStep: "", exportProgress: "",
-    activeProjectId: projectId,
+    ollamaDir: "", manifestDir: "",
+    activeProjectId: projectId, pathWarning: null,
   }),
 
   setResult: (r) => set({ result: r }),
@@ -55,6 +67,9 @@ export const useExportStore = create<ExportState>((set, get) => ({
   setExportProgress: (desc) => set({ exportProgress: desc }),
   setModelName: (name) => set({ modelName: name }),
   setOutputDir: (dir) => set({ outputDir: dir }),
+  setOllamaDir: (dir) => set({ ollamaDir: dir }),
+  setManifestDir: (dir) => set({ manifestDir: dir }),
+  setPathWarning: (w) => set({ pathWarning: w }),
 
   clearAll: () => set({
     isExporting: false,
@@ -64,26 +79,30 @@ export const useExportStore = create<ExportState>((set, get) => ({
     exportProgress: "",
     modelName: "",
     outputDir: "",
+    ollamaDir: "",
+    manifestDir: "",
     activeProjectId: "",
+    pathWarning: null,
   }),
 
   _listenersReady: false,
+  _initPromise: null,
   _unlistens: [],
 
-  initListeners: () => {
+  initListeners: async () => {
     if (get()._listenersReady) return;
-    set({ _listenersReady: true });
+    if (get()._initPromise) return get()._initPromise as Promise<void>;
 
-    const unsubs: UnlistenFn[] = [];
+    const setupPromise = (async () => {
+      const unsubs: UnlistenFn[] = [];
 
-    // Helper: only process events belonging to the active project
-    const isMyProject = (payload: ExportEvent) => {
-      const active = get().activeProjectId;
-      if (!active) return true; // no active project yet, accept all
-      return payload.project_id === active;
-    };
+      // Helper: only process events belonging to the active project
+      const isMyProject = (payload: ExportEvent) => {
+        const active = get().activeProjectId;
+        if (!active) return true; // no active project yet, accept all
+        return payload.project_id === active;
+      };
 
-    const setup = async () => {
       const u1 = await listen<ExportEvent & { step?: string; desc?: string }>("export:progress", (e) => {
         if (!isMyProject(e.payload)) return;
         const desc = e.payload.desc || "";
@@ -97,12 +116,16 @@ export const useExportStore = create<ExportState>((set, get) => ({
       });
       unsubs.push(u1);
 
-      const u2 = await listen<ExportEvent & { model_name?: string; output_dir?: string }>("export:complete", (e) => {
+      const u2 = await listen<ExportEvent & { model_name?: string; output_dir?: string; ollama_dir?: string; manifest_dir?: string }>("export:complete", (e) => {
         if (!isMyProject(e.payload)) return;
         const name = (e.payload.model_name as string) || "";
         const dir = (e.payload.output_dir as string) || "";
+        const ollamaDir = (e.payload.ollama_dir as string) || "";
+        const manifestDir = (e.payload.manifest_dir as string) || "";
         if (name) get().setModelName(name);
         if (dir) get().setOutputDir(dir);
+        if (ollamaDir) get().setOllamaDir(ollamaDir);
+        if (manifestDir) get().setManifestDir(manifestDir);
         set({ isExporting: false, currentStep: "done", exportProgress: "" });
         set({ result: `__success__:${name}` });
         get().addLog(`--- Model '${name}' created`);
@@ -118,8 +141,24 @@ export const useExportStore = create<ExportState>((set, get) => ({
       });
       unsubs.push(u3);
 
-      set({ _unlistens: unsubs });
-    };
-    setup();
+      const u4 = await listen<ExportEvent & { configured_path?: string; fallback_path?: string }>("export:path_warning", (e) => {
+        if (!isMyProject(e.payload)) return;
+        get().setPathWarning({
+          configuredPath: (e.payload.configured_path as string) || "",
+          fallbackPath: (e.payload.fallback_path as string) || "",
+        });
+      });
+      unsubs.push(u4);
+
+      set({ _unlistens: unsubs, _listenersReady: true });
+    })();
+
+    set({ _initPromise: setupPromise });
+
+    try {
+      await setupPromise;
+    } finally {
+      set({ _initPromise: null });
+    }
   },
 }));

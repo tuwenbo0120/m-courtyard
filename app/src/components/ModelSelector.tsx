@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronDown, ChevronRight, CheckCircle2, RefreshCw,
@@ -243,6 +244,15 @@ interface OllamaModelInfo {
   size: string;
 }
 
+function normalizeOllamaModelName(name: string): string {
+  return name.endsWith(":latest") ? name.slice(0, -":latest".length) : name;
+}
+
+function isOllamaModelVisibleToDaemon(modelName: string, daemonModels: OllamaModelInfo[]): boolean {
+  const target = normalizeOllamaModelName(modelName);
+  return daemonModels.some((m) => normalizeOllamaModelName(m.name) === target);
+}
+
 const HF_DOWNLOAD_LINKS = [
   { labelKey: "hfLinks.official", url: "https://huggingface.co/mlx-community" },
   { labelKey: "hfLinks.mirror", url: "https://hf-mirror.com/mlx-community" },
@@ -255,14 +265,22 @@ const OLLAMA_LINKS = [
   { labelKey: "ollamaLinks.library", url: "https://ollama.com/library" },
 ];
 
-function isModelUsable(source: string, mode: ModelSelectorMode): boolean {
+function isModelUsable(
+  source: string,
+  mode: ModelSelectorMode,
+  modelName: string,
+  daemonModels: OllamaModelInfo[]
+): boolean {
   if (mode === "training") return source !== "ollama" && source !== "trained";
-  if (mode === "dataprep") return source === "ollama";
+  if (mode === "dataprep") {
+    if (source !== "ollama") return false;
+    return isOllamaModelVisibleToDaemon(modelName, daemonModels);
+  }
   if (mode === "export") return source === "trained";
   return true;
 }
 
-function getDisabledReasonKey(source: string, mode: ModelSelectorMode): string {
+function getDisabledReasonKey(source: string, mode: ModelSelectorMode, daemonVisible: boolean): string {
   if (mode === "training") {
     if (source === "ollama") return "modelSelector.disabledReason.ollamaNoLora";
     if (source === "trained") return "modelSelector.disabledReason.trainedNotBase";
@@ -270,6 +288,7 @@ function getDisabledReasonKey(source: string, mode: ModelSelectorMode): string {
   if (mode === "dataprep") {
     if (source === "trained") return "modelSelector.disabledReason.adapterNoGen";
     if (source !== "ollama") return "modelSelector.disabledReason.ollamaOnly";
+    if (!daemonVisible) return "modelSelector.disabledReason.notInDaemon";
   }
   if (mode === "export") {
     if (source !== "trained") return "modelSelector.disabledReason.selectAdapter";
@@ -280,7 +299,11 @@ function getDisabledReasonKey(source: string, mode: ModelSelectorMode): string {
 export function ModelSelector({ mode, selectedModel, onSelect, disabled, projectId, onSelectAdapter }: Props) {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
-  const sourceLabel = (s: string) => s === "trained" ? t("modelSelector.sourceLabels.trained") : (SOURCE_LABELS_STATIC[s] || s);
+  const sourceLabel = (s: string) => {
+    const key = `modelSelector.sourceLabels.${s}`;
+    const translated = t(key);
+    return translated === key ? (SOURCE_LABELS_STATIC[s] || s) : translated;
+  };
   const [allModels, setAllModels] = useState<LocalModelInfo[]>([]);
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
   const [ollamaModels, setOllamaModels] = useState<OllamaModelInfo[]>([]);
@@ -336,18 +359,51 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
     loadOllamaModels();
     if (mode === "training") loadHfSource();
   }, [loadModels, loadOllamaModels, loadHfSource, mode]);
-  useEffect(() => { loadAdapters(); }, [loadAdapters]);
+  useEffect(() => { if (mode === "export") loadAdapters(); }, [loadAdapters, mode]);
 
-  // Combine scanned models with adapter pseudo-models
+  // Auto-refresh local/Ollama model lists after an export completes.
+  useEffect(() => {
+    let unlisten: UnlistenFn | null = null;
+    const setup = async () => {
+      unlisten = await listen<{ project_id?: string }>("export:complete", (e) => {
+        const pid = e.payload?.project_id;
+        if (projectId && pid && pid !== projectId) return;
+        loadModels();
+        loadOllamaModels();
+      });
+    };
+    setup();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [projectId, loadModels, loadOllamaModels]);
+
+  // Scroll-hide refs for model list
+  const listRef = useRef<HTMLDivElement>(null);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Per-source header element refs — used to auto-scroll on expand
+  const sourceHeaderRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const handleListScroll = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    el.classList.add("is-scrolling");
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => {
+      el.classList.remove("is-scrolling");
+    }, 3000);
+  }, []);
+
+  // Adapters only appear in the local model list when mode is "export".
+  // In training/dataprep they cannot be used directly and would confuse users.
   const combinedModels: LocalModelInfo[] = [
     ...allModels,
-    ...adapters.map((a) => ({
+    ...(mode === "export" ? adapters.map((a) => ({
       name: `${a.base_model || a.name} \u2192 ${a.created}`,
       path: a.path,
       size_mb: 0,
       is_mlx: true,
       source: "trained",
-    })),
+    })) : []),
   ];
 
   // Group by source
@@ -359,8 +415,8 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
 
   // Sort sources: most usable models first
   const sortedSources = Object.keys(grouped).sort((a, b) => {
-    const usableA = grouped[a].filter((m) => isModelUsable(m.source, mode)).length;
-    const usableB = grouped[b].filter((m) => isModelUsable(m.source, mode)).length;
+    const usableA = grouped[a].filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels)).length;
+    const usableB = grouped[b].filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels)).length;
     return usableB - usableA;
   });
 
@@ -375,8 +431,23 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
   const toggleSource = (source: string) => {
     setExpandedSources((prev) => {
       const next = new Set(prev);
+      const expanding = !next.has(source);
       if (next.has(source)) next.delete(source);
       else next.add(source);
+      if (expanding) {
+        // After React re-renders the expanded content, scroll so the header is visible
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const header = sourceHeaderRefs.current.get(source);
+            const container = listRef.current;
+            if (!header || !container) return;
+            const containerRect = container.getBoundingClientRect();
+            const headerRect = header.getBoundingClientRect();
+            const relativeTop = headerRect.top - containerRect.top + container.scrollTop;
+            container.scrollTo({ top: relativeTop - 4, behavior: "smooth" });
+          });
+        });
+      }
       return next;
     });
   };
@@ -435,7 +506,7 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
   };
 
   const totalModels = combinedModels.length;
-  const usableModels = combinedModels.filter((m) => isModelUsable(m.source, mode)).length;
+  const usableModels = combinedModels.filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels)).length;
 
   return (
     <div className="space-y-2">
@@ -511,7 +582,7 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                     {t("modelSelector.scanStatus", { total: totalModels, usable: usableModels })}
                   </p>
                   <button
-                    onClick={() => { loadModels(); loadAdapters(); }}
+                    onClick={() => { loadModels(); loadAdapters(); loadOllamaModels(); }}
                     disabled={loading}
                     className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
                   >
@@ -530,15 +601,18 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                     </p>
                   </div>
                 ) : (
-                  <div className="max-h-64 space-y-1 overflow-y-auto">
+                  <div ref={listRef} onScroll={handleListScroll} className="max-h-64 space-y-1 overflow-y-auto overflow-x-hidden log-scroll-container">
                     {sortedSources.map((source) => {
                       const models = grouped[source];
                       const expanded = expandedSources.has(source);
-                      const usableCount = models.filter((m) => isModelUsable(m.source, mode)).length;
+                      const usableCount = models.filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels)).length;
                       return (
                         <div key={source}>
                           {/* Source Header */}
-                          <div className="flex items-center justify-between rounded-md px-2 py-1.5">
+                          <div
+                            ref={(el) => { if (el) sourceHeaderRefs.current.set(source, el); }}
+                            className="flex items-center justify-between rounded-md px-2 py-1.5"
+                          >
                             <button
                               onClick={() => toggleSource(source)}
                               className="flex items-center gap-2 text-xs font-medium text-foreground transition-colors hover:bg-accent rounded-md px-1 py-0.5"
@@ -564,25 +638,26 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
 
                           {/* Models List */}
                           {expanded && (
-                            <div className="ml-4 space-y-0.5">
+                            <div className="space-y-0.5 overflow-x-hidden">
                               {models.map((m) => {
-                                const usable = isModelUsable(m.source, mode);
+                                const daemonVisible = isOllamaModelVisibleToDaemon(m.name, ollamaModels);
+                                const usable = isModelUsable(m.source, mode, m.name, ollamaModels);
                                 const isSelected = selectedModel === m.name || selectedModel === m.path;
-                                const reasonKey = getDisabledReasonKey(m.source, mode);
+                                const reasonKey = getDisabledReasonKey(m.source, mode, daemonVisible);
                                 const reason = reasonKey ? t(reasonKey) : "";
                                 return (
                                   <button
                                     key={m.path + m.name}
                                     onClick={() => usable && handleSelectModel(m)}
                                     disabled={!usable || disabled}
-                                    className={`flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors ${
+                                    className={`flex w-full min-w-0 items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors ${
                                       isSelected
                                         ? "border-primary bg-primary/10 text-foreground"
                                         : usable
                                         ? "border-border text-muted-foreground hover:bg-accent"
                                         : "border-border/50 text-muted-foreground/40 cursor-not-allowed"
                                     }`}
-                                    title={reason}
+                                    title={reason || m.name}
                                   >
                                     {/* Radio indicator */}
                                     {isSelected ? (
@@ -590,8 +665,18 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                                     ) : (
                                       <span className={`h-4 w-4 shrink-0 rounded-full border-2 ${usable ? "border-muted-foreground/30" : "border-muted-foreground/15"}`} />
                                     )}
-                                    <div className="min-w-0 flex-1">
-                                      <span className={`truncate font-medium ${usable ? "text-foreground" : "text-muted-foreground/40"}`}>{m.name}</span>
+                                    <div className="min-w-0 flex-1 overflow-hidden">
+                                      {m.source === "trained" ? (() => {
+                                        const parts = m.name.split(" \u2192 ");
+                                        return (
+                                          <>
+                                            <div className={`text-xs font-medium leading-snug ${usable ? "text-foreground" : "text-muted-foreground/40"}`}>{parts[0]}</div>
+                                            {parts[1] && <div className={`text-[10px] leading-snug mt-0.5 ${usable ? "text-muted-foreground/60" : "text-muted-foreground/30"}`}>{parts[1]}</div>}
+                                          </>
+                                        );
+                                      })() : (
+                                        <span className={`font-medium ${usable ? "text-foreground" : "text-muted-foreground/40"}`}>{m.name}</span>
+                                      )}
                                       {m.is_mlx && m.source !== "trained" && (
                                         <span className="ml-1.5 rounded bg-tag-mlx/15 px-1 py-0.5 text-[10px] text-tag-mlx">MLX</span>
                                       )}

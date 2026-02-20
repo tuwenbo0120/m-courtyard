@@ -87,7 +87,7 @@ m-courtyard/
 
 ## Community
 
-- [Discord](https://discord.gg/hjkrHWrQ) — Chat and get help
+- [Discord](https://discord.gg/v9ajdTSZzA) — Chat and get help
 - [GitHub Discussions](https://github.com/Mcourtyard/m-courtyard/discussions) — Feature ideas and Q&A
 
 ## License

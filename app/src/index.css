@@ -198,31 +198,26 @@
   }
 }
 
-/* Log/preview scroll container: scrollbar hidden by default, visible on scroll */
+/* Scroll container: completely hidden by default, thin bar when is-scrolling (added via JS) */
 .log-scroll-container {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s;
-}
-.log-scroll-container:hover,
-.log-scroll-container.is-scrolling {
-  scrollbar-color: rgba(161, 161, 170, 0.3) transparent;
+  scrollbar-width: none;
 }
 .log-scroll-container::-webkit-scrollbar {
-  width: 6px;
+  width: 0;
+  display: none;
 }
-.log-scroll-container::-webkit-scrollbar-track {
+.log-scroll-container.is-scrolling {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(161, 161, 170, 0.35) transparent;
+}
+.log-scroll-container.is-scrolling::-webkit-scrollbar {
+  width: 4px;
+  display: block;
+}
+.log-scroll-container.is-scrolling::-webkit-scrollbar-track {
   background: transparent;
 }
-.log-scroll-container::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  transition: background 0.3s;
-}
-.log-scroll-container:hover::-webkit-scrollbar-thumb,
 .log-scroll-container.is-scrolling::-webkit-scrollbar-thumb {
-  background: rgba(161, 161, 170, 0.3);
-}
-.log-scroll-container.is-scrolling::-webkit-scrollbar-thumb:hover {
-  background: rgba(161, 161, 170, 0.5);
+  background: rgba(161, 161, 170, 0.35);
+  border-radius: 2px;
 }

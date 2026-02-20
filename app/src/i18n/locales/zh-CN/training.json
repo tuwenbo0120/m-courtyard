@@ -87,6 +87,23 @@
   "noDataset": "未检测到训练数据集，请先在「数据准备」页面生成",
   "selectDatasetVersion": "选择数据集版本",
   "datasetLegacy": "旧版数据集",
+  "dataset": {
+    "trainSet": "训练集",
+    "validSet": "验证集",
+    "samples": "{{count}} 条",
+    "sourceFiles": "来源文件",
+    "genType": "生成类型",
+    "genMethod": "生成方式",
+    "methodOllama": "AI 生成（{{model}}）",
+    "methodBuiltin": "内置规则",
+    "modeQa": "知识问答",
+    "modeStyle": "风格模仿",
+    "modeChat": "对话模式",
+    "modeInstruct": "通用指令",
+    "page": "第 {{current}} / {{total}} 页",
+    "prevPage": "上一页",
+    "nextPage": "下一页"
+  },
   "trainProgress": "训练进度",
   "initializing": "初始化中...",
   "eta": {

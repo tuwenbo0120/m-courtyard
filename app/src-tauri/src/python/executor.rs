@@ -102,8 +102,16 @@ impl PythonExecutor {
         find_binary("ollama", &candidates)
     }
 
-    /// Returns the path to bundled scripts directory
+    /// Returns the path to bundled scripts directory.
+    /// In dev builds, the source-tree scripts directory is checked first so
+    /// newly-added scripts don't require a separate copy/symlink step.
     pub fn scripts_dir() -> PathBuf {
+        // Dev builds: always prefer the source tree so new scripts are found immediately
+        let manifest_scripts = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("scripts");
+        if manifest_scripts.exists() {
+            return manifest_scripts.canonicalize().unwrap_or(manifest_scripts);
+        }
+
         let exe_dir = std::env::current_exe()
             .ok()
             .and_then(|p| p.parent().map(|p| p.to_path_buf()));
@@ -114,7 +122,7 @@ impl PythonExecutor {
                 dir.join("../Resources/scripts"),
                 // Direct next to binary
                 dir.join("scripts"),
-                // Parent dirs (dev builds)
+                // Parent dirs
                 dir.join("../scripts"),
                 dir.join("../../scripts"),
             ];
@@ -125,9 +133,7 @@ impl PythonExecutor {
             }
         }
 
-        // Fallback: source tree scripts dir (works during development)
-        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        manifest_dir.join("scripts")
+        manifest_scripts
     }
 }
 

@@ -7,7 +7,7 @@
 ### 开发模式（推荐开发调试时使用）
 
 ```bash
-cd /Users/tuwenbo/Desktop/tools/courtyard/app
+cd /path/to/courtyard/app
 source "$HOME/.cargo/env"   # 确保 Rust 环境可用
 pnpm tauri dev
 ```
@@ -20,19 +20,19 @@ pnpm tauri dev
 双击以下路径即可打开：
 
 ```
-/Users/tuwenbo/Desktop/tools/courtyard/app/src-tauri/target/debug/bundle/macos/Courtyard.app
+/path/to/courtyard/app/src-tauri/target/debug/bundle/macos/Courtyard.app
 ```
 
 或者安装 DMG：
 
 ```
-/Users/tuwenbo/Desktop/tools/courtyard/app/src-tauri/target/debug/bundle/dmg/Courtyard_0.1.0_aarch64.dmg
+/path/to/courtyard/app/src-tauri/target/debug/bundle/dmg/Courtyard_0.1.0_aarch64.dmg
 ```
 
 ### 重新编译（代码改动后）
 
 ```bash
-cd /Users/tuwenbo/Desktop/tools/courtyard/app
+cd /path/to/courtyard/app
 pnpm tauri build --debug    # debug 版本，编译较快
 pnpm tauri build            # release 版本，体积小、运行快
 ```
@@ -138,7 +138,7 @@ SQLite 数据库文件由 Tauri 插件管理，位于应用数据目录。
 **最简单的方式：**
 
 ```bash
-cd /Users/tuwenbo/Desktop/tools/courtyard/app && pnpm tauri dev
+cd /path/to/courtyard/app && pnpm tauri dev
 ```
 
 **或者创建一个快捷命令（可选）：**
@@ -146,7 +146,7 @@ cd /Users/tuwenbo/Desktop/tools/courtyard/app && pnpm tauri dev
 在 `~/.zshrc` 中添加：
 
 ```bash
-alias courtyard="cd /Users/tuwenbo/Desktop/tools/courtyard/app && source \$HOME/.cargo/env && pnpm tauri dev"
+alias courtyard="cd /path/to/courtyard/app && source \$HOME/.cargo/env && pnpm tauri dev"
 ```
 
 然后在终端输入 `courtyard` 即可启动。
@@ -155,7 +155,7 @@ alias courtyard="cd /Users/tuwenbo/Desktop/tools/courtyard/app && source \$HOME/
 
 打开 Finder，导航到：
 ```
-/Users/tuwenbo/Desktop/tools/courtyard/app/src-tauri/target/debug/bundle/macos/Courtyard.app
+/path/to/courtyard/app/src-tauri/target/debug/bundle/macos/Courtyard.app
 ```
 
 ---

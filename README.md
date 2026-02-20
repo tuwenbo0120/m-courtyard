@@ -14,7 +14,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/Mcourtyard/m-courtyard)](https://github.com/Mcourtyard/m-courtyard/releases/latest)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![GitHub last commit](https://img.shields.io/github/last-commit/Mcourtyard/m-courtyard)](https://github.com/Mcourtyard/m-courtyard/commits/main)
-[![Discord](https://img.shields.io/discord/1471348538909790260?color=5865F2&label=Discord&logo=discord&logoColor=white)](https://discord.gg/hjkrHWrQ)
+[![Discord](https://img.shields.io/discord/1471348538909790260?color=5865F2&label=Discord&logo=discord&logoColor=white)](https://discord.gg/v9ajdTSZzA)
 
 English | **[中文](./README_zh-CN.md)**
 
@@ -263,7 +263,7 @@ Please make sure to:
 
 ## Community
 
-- [Discord](https://discord.gg/hjkrHWrQ) — Chat, get help, share your fine-tuned models
+- [Discord](https://discord.gg/v9ajdTSZzA) — Chat, get help, share your fine-tuned models
 - [GitHub Discussions](https://github.com/Mcourtyard/m-courtyard/discussions) — Feature ideas, Q&A, announcements
 - [GitHub Issues](https://github.com/Mcourtyard/m-courtyard/issues) — Bug reports and feature requests
 

@@ -504,6 +504,18 @@ def main():
         test_content = extract_text_from_response(test_result)
         done_reason = test_result.get("done_reason", "unknown")
         emit("log", message=t("gen.connect_ok", response=test_content[:80], reason=done_reason))
+    except urllib.error.HTTPError as e:
+        emit("log", message=t("gen.connect_fail", error=str(e)))
+        if e.code == 404:
+            # 404 means the daemon does not know this model — almost always a
+            # misconfigured OLLAMA_MODELS path.  Emit the special flag so the
+            # frontend can show actionable guidance instead of a generic error.
+            emit("error",
+                 message=t("gen.connect_error_404", model=args.model),
+                 is_path_mismatch=True)
+        else:
+            emit("error", message=t("gen.connect_error", error=str(e)))
+        sys.exit(1)
     except Exception as e:
         emit("log", message=t("gen.connect_fail", error=str(e)))
         emit("error", message=t("gen.connect_error", error=str(e)))

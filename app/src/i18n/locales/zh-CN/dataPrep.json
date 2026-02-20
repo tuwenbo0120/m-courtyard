@@ -60,7 +60,7 @@
     "downloadHint": "推荐下载以下模型用于数据集生成：",
     "downloadBtn": "去下载",
     "addModelPath": "手动添加模型路径",
-    "addModelPlaceholder": "输入本地模型路径（如 /Users/.../model）",
+    "addModelPlaceholder": "输入本地模型路径（如 /path/to/model）",
     "addModelBtn": "添加",
     "refreshModels": "刷新模型列表",
     "builtinHint": "使用规则提取自动生成训练数据，无需 AI 模型，速度快但质量有限。",

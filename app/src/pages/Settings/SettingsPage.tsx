@@ -15,8 +15,17 @@ interface AppConfigResponse {
   modelscope_custom: boolean;
   ollama_custom: boolean;
   export_path: string | null;
+  default_export_root: string;
   ollama_installed: boolean;
   hf_source: string;
+}
+
+interface OllamaPathInfo {
+  default_path: string;
+  effective_path: string;
+  configured_path: string | null;
+  configured_has_layout: boolean;
+  configured_model_count: number;
 }
 
 export function SettingsPage() {
@@ -28,12 +37,25 @@ export function SettingsPage() {
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupMsg, setSetupMsg] = useState<string | null>(null);
   const [config, setConfig] = useState<AppConfigResponse | null>(null);
+  const [ollamaPathInfo, setOllamaPathInfo] = useState<OllamaPathInfo | null>(null);
+  const [storageMsg, setStorageMsg] = useState<{ type: "success" | "warning"; text: string } | null>(null);
 
   const loadConfig = useCallback(async () => {
     try {
       const cfg = await invoke<AppConfigResponse>("get_app_config");
       setConfig(cfg);
     } catch { /* ignore */ }
+  }, []);
+
+  const loadOllamaPathInfo = useCallback(async (): Promise<OllamaPathInfo | null> => {
+    try {
+      const info = await invoke<OllamaPathInfo>("get_ollama_path_info");
+      setOllamaPathInfo(info);
+      return info;
+    } catch {
+      setOllamaPathInfo(null);
+      return null;
+    }
   }, []);
 
   const browseAndSetPath = async (source: string) => {
@@ -45,6 +67,39 @@ export function SettingsPage() {
         await invoke("set_model_source_path", { source, path: selected });
       }
       await loadConfig();
+      if (source === "ollama") {
+        const info = await loadOllamaPathInfo();
+        if (info?.configured_path) {
+          if (!info.configured_has_layout) {
+            setStorageMsg({
+              type: "warning",
+              text: t("storage.ollamaPathInvalidLayout", { path: info.configured_path }),
+            });
+          } else {
+            try {
+              await invoke("fix_ollama_models_path");
+              await loadOllamaPathInfo();
+            } catch (e) {
+              setStorageMsg({
+                type: "warning",
+                text: t("storage.ollamaApplyFailed", { error: String(e) }),
+              });
+              return;
+            }
+            if (info.configured_model_count === 0) {
+              setStorageMsg({
+                type: "warning",
+                text: t("storage.ollamaPathNoModels", { path: info.configured_path }),
+              });
+            } else {
+              setStorageMsg({
+                type: "success",
+                text: t("storage.ollamaPathValid", { count: info.configured_model_count }),
+              });
+            }
+          }
+        }
+      }
     }
   };
 
@@ -53,6 +108,30 @@ export function SettingsPage() {
       await invoke("set_export_path", { path: null });
     } else {
       await invoke("set_model_source_path", { source, path: null });
+    }
+    if (source === "ollama") {
+      try {
+        await invoke("reset_ollama_models_path");
+      } catch (e) {
+        setStorageMsg({
+          type: "warning",
+          text: t("storage.ollamaResetFailed", { error: String(e) }),
+        });
+      }
+      await loadConfig();
+      const info = await loadOllamaPathInfo();
+      if (info && info.effective_path === info.default_path) {
+        setStorageMsg({
+          type: "success",
+          text: t("storage.ollamaResetApplied"),
+        });
+      } else if (info) {
+        setStorageMsg({
+          type: "warning",
+          text: t("storage.ollamaEffectivePathPersistHint"),
+        });
+      }
+      return;
     }
     await loadConfig();
   };
@@ -72,7 +151,8 @@ export function SettingsPage() {
   useEffect(() => {
     refresh();
     loadConfig();
-  }, [loadConfig]);
+    loadOllamaPathInfo();
+  }, [loadConfig, loadOllamaPathInfo]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -353,6 +433,12 @@ export function SettingsPage() {
           </h2>
         </div>
 
+        {storageMsg && (
+          <p className={`text-xs ${storageMsg.type === "warning" ? "text-warning" : "text-success"}`}>
+            {storageMsg.text}
+          </p>
+        )}
+
         <div className="rounded-lg border border-border divide-y divide-border">
           {/* Data Directory (read-only) */}
           <div className="flex items-center justify-between px-4 py-3">
@@ -442,6 +528,22 @@ export function SettingsPage() {
                   </span>
                 )}
               </div>
+              {ollamaPathInfo && (
+                <div className="space-y-1 pt-1 text-[10px] text-muted-foreground/70">
+                  <p>
+                    {t("storage.defaultPath")}: <span className="font-mono">{ollamaPathInfo.default_path}</span>
+                  </p>
+                  <p>
+                    {t("storage.effectivePath")}: <span className="font-mono">{ollamaPathInfo.effective_path}</span>
+                  </p>
+                  {ollamaPathInfo.configured_path && !ollamaPathInfo.configured_has_layout && (
+                    <p className="text-warning">{t("storage.ollamaPathLayoutMissing")}</p>
+                  )}
+                  {ollamaPathInfo.configured_path && ollamaPathInfo.configured_has_layout && ollamaPathInfo.configured_model_count === 0 && (
+                    <p className="text-warning">{t("storage.ollamaPathNoModelHint")}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -455,9 +557,14 @@ export function SettingsPage() {
           <div className="rounded-lg border border-border px-4 py-3 space-y-1">
             <div className="flex items-center justify-between">
               <span className="truncate text-xs font-mono text-muted-foreground/70">
-                {config?.export_path || (config?.ollama_installed ? config?.ollama : "~/Courtyard/projects/<project>/export")}
+                {config?.export_path || (config ? `${config.default_export_root}/<project>/export` : "...")}
               </span>
               <div className="flex items-center gap-2">
+                {config && (
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${config.export_path ? "bg-tag-trained/15 text-tag-trained" : "bg-muted text-muted-foreground"}`}>
+                    {config.export_path ? t("storage.custom") : t("storage.default")}
+                  </span>
+                )}
                 {config?.export_path && (
                   <button onClick={() => resetPath("export")} className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground">
                     <RotateCcw size={10} />
@@ -469,6 +576,11 @@ export function SettingsPage() {
                 </button>
               </div>
             </div>
+            {!config?.export_path && config && (
+              <p className="text-[10px] text-muted-foreground/60">
+                {t("storage.exportDefaultHint", { path: `${config.default_export_root}/<project>/export` })}
+              </p>
+            )}
           </div>
         </div>
       </section>

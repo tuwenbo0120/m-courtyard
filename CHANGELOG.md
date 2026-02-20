@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-02-20
+
+### Added
+- **Training Dataset Expandable List**: Replaced dropdown selector with inline expandable list; each item shows train/valid counts in header row and expands to reveal source files, generation type, and method
+- **Training Dataset Pagination**: Added 10-items-per-page pagination controls to training dataset list (same as DataPrep 1.4), with previous/next navigation and page indicator
+- **Export Regression Verification**: After successful export, automatically runs `ollama run <model> "..."` smoke test (30 s timeout); shows response preview on pass or error detail + retry button on failure
+
+### Fixed
+- **Export flow stuck at "check Ollama" step**: Removed pre-export compatibility check panel which ran concurrent `ollama list` alongside the export script's own check, causing silent conflicts; all pre-conditions are already guaranteed by form inline validation and `check_ollama_status`
+
+### Changed
+- `DatasetVersionInfo` interface in `TrainingPage.tsx` extended with `raw_files`, `mode`, `source`, `model` fields (aligned with DataPrep interface)
+- Added `dataset.*` i18n keys to `training` namespace (en + zh-CN): trainSet, validSet, samples, sourceFiles, genType, genMethod, methodOllama, methodBuiltin, mode labels, page navigation
+
+### Refactored
+- **Ollama Model Path Unification** (BUG-090): `scan_local_models` now scans only the single daemon-aware effective Ollama path via `resolve_ollama_models_dir()`, removing the previous dual-path scan that showed confusing "Ollama" + "Custom Ollama" groups; `open_model_cache` updated consistently; frontend `ModelSelector` removes `ollama_custom` source label/color/logic; i18n removes `sourceLabels.ollama_custom`
+- **Code Cleanup** (BUG-091): Removed unused import `default_ollama_models_dir` from `training.rs`; removed dead `ollama_library_dir` function from `export.rs`; replaced hardcoded path examples in UI text with generic `/path/to/...` placeholders
+
 ## [0.4.1] - 2026-02-15
 
 ### Fixed
@@ -118,6 +136,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Actions CI**: Automated .dmg build and release on tag push
 - **Discord Integration**: Automated release notifications via webhook
 
+[0.4.2]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.2
 [0.4.1]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.1
 [0.4.0]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.3.0

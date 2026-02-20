@@ -128,6 +128,7 @@
     "rename": "重命名",
     "delete": "删除",
     "sourceLabels": {
+      "ollama": "Ollama",
       "trained": "已训练适配器"
     },
     "disabledReason": {
@@ -135,6 +136,7 @@
       "trainedNotBase": "LoRA 适配器，不是基础模型",
       "adapterNoGen": "适配器不可直接用于数据生成",
       "ollamaOnly": "仅支持 Ollama 模型",
+      "notInDaemon": "当前 Ollama daemon 运行路径不可用该模型",
       "selectAdapter": "请选择已训练的适配器"
     },
     "selectExisting": "选择已有模型",
@@ -169,5 +171,16 @@
     "repoIdPlaceholder": "输入 HuggingFace 模型 ID，如 mlx-community/Qwen3-4B-Instruct-2507-4bit",
     "customDownload": "自定义模型 ID",
     "startDownload": "下载"
+  },
+  "ollamaPathMismatch": {
+    "title": "Ollama daemon 未使用您配置的模型路径",
+    "desc": "当前 Ollama 无法找到所选模型。这通常是因为 daemon 启动时未加载您在设置中配置的自定义路径。请检查并修复路径指向。",
+    "terminalHint": "在终端执行以下命令，将路径替换为您的实际路径，然后重启 Ollama：",
+    "commandExample": "launchctl setenv OLLAMA_MODELS \"/path/to/your/models\"",
+    "autoFix": "自动应用配置路径并重启 Ollama",
+    "autoFixing": "正在重启 Ollama...",
+    "autoFixSuccess": "已成功应用路径并重启 Ollama，请稍后重新尝试生成",
+    "autoFixError": "自动修复失败：{{error}}",
+    "noCustomPath": "未配置自定义路径，请先在设置中配置 Ollama 模型路径"
   }
 }

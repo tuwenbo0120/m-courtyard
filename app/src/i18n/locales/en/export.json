@@ -21,13 +21,30 @@
     "exporting": "Exporting...",
     "success": "Model exported successfully!",
     "successRunHint": "Open your terminal and run the following command:",
-    "notInstalled": "Ollama is not installed. Install from ollama.com first."
+    "notInstalled": "Ollama is not installed. Install from ollama.com first.",
+    "outputLocation": "Export output directory",
+    "ollamaModelsDir": "Ollama models directory",
+    "manifestDir": "Manifest directory",
+    "pathDefault": "Default",
+    "pathCustom": "Custom"
   },
+  "ollamaPathWarning": "Configured Ollama models path '{{configuredPath}}' is missing the standard layout (manifests/registry.ollama.ai/library). Falling back to default path: {{fallbackPath}}",
+  "pathWarning": "Configured export path '{{configuredPath}}' is unavailable (drive not mounted?). Files saved to local project directory: {{fallbackPath}}",
   "gguf": {
     "title": "Export as GGUF",
-    "description": "Export model in GGUF format for use with llama.cpp and other tools.",
-    "exportButton": "Export GGUF",
-    "comingSoon": "Coming in a future update"
+    "description": "Export as a .gguf file for use with llama.cpp, LM Studio, Jan, and other tools.",
+    "archNote": "Supports Llama, Mistral, and Mixtral architectures only.",
+    "exportButton": "Export to GGUF",
+    "exporting": "Exporting...",
+    "success": "GGUF exported successfully!",
+    "successHint": "File saved to:",
+    "openFile": "Open Folder",
+    "comingSoon": "Coming in a future update",
+    "pipeline": {
+      "check": "Prepare",
+      "resolve": "Resolve Model",
+      "fuse": "Fuse & Convert"
+    }
   },
   "section": {
     "selectAdapter": "Select Adapter (Training Result)",
@@ -35,6 +52,10 @@
     "quantization": "Quantization"
   },
   "selectAdapterPlaceholder": "Select an adapter",
+  "confirmDelete": "Confirm Delete",
+  "deleteAdapter": "Delete adapter",
+  "noWeights": "No weights",
+  "deleteAll": "Delete All Adapters",
   "baseModel": "Base model: ",
   "exportLog": "Export Log",
   "pipeline": {
@@ -53,5 +74,26 @@
     "needAdapter": "Please select an adapter first",
     "needModelName": "Please enter a model name first",
     "needQuantization": "Please select a quantization method first"
+  },
+  "compat": {
+    "title": "Pre-export Check",
+    "checking": "Checking...",
+    "allGood": "All checks passed — ready to export",
+    "hasIssues": "{{count}} issue(s) found — fix before exporting",
+    "keys": {
+      "adapter": "Adapter weights",
+      "baseModel": "Base model",
+      "modelName": "Model name",
+      "ollama": "Ollama available"
+    },
+    "fix": "Fix: "
+  },
+  "verify": {
+    "title": "Regression Verification",
+    "running": "Verifying model response...",
+    "success": "Model is responding normally",
+    "failed": "Verification failed",
+    "preview": "Response preview:",
+    "retry": "Retry"
   }
 }

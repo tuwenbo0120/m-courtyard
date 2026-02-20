@@ -87,6 +87,23 @@
   "noDataset": "No training dataset found. Generate one in Data Preparation first.",
   "selectDatasetVersion": "Select dataset version",
   "datasetLegacy": "Legacy Dataset",
+  "dataset": {
+    "trainSet": "Training set",
+    "validSet": "Validation set",
+    "samples": "{{count}} samples",
+    "sourceFiles": "Source files",
+    "genType": "Type",
+    "genMethod": "Method",
+    "methodOllama": "AI Generation ({{model}})",
+    "methodBuiltin": "Built-in Rules",
+    "modeQa": "Q&A",
+    "modeStyle": "Style Imitation",
+    "modeChat": "Dialogue",
+    "modeInstruct": "Instruction",
+    "page": "Page {{current}} / {{total}}",
+    "prevPage": "Previous",
+    "nextPage": "Next"
+  },
   "trainProgress": "Training Progress",
   "initializing": "Initializing...",
   "eta": {

@@ -21,13 +21,30 @@
     "exporting": "导出中...",
     "success": "模型导出成功！",
     "successRunHint": "打开终端，输入以下命令运行模型：",
-    "notInstalled": "Ollama 未安装。请先从 ollama.com 安装。"
+    "notInstalled": "Ollama 未安装。请先从 ollama.com 安装。",
+    "outputLocation": "导出输出目录",
+    "ollamaModelsDir": "Ollama 模型目录",
+    "manifestDir": "Manifest 目录",
+    "pathDefault": "默认",
+    "pathCustom": "自定义"
   },
+  "ollamaPathWarning": "配置的 Ollama 模型目录 '{{configuredPath}}' 缺少标准目录结构（manifests/registry.ollama.ai/library），已回退到默认目录：{{fallbackPath}}",
+  "pathWarning": "配置的导出路径 '{{configuredPath}}' 不可用（硬盘未挂载？），文件已保存至本地项目目录：{{fallbackPath}}",
   "gguf": {
     "title": "导出为 GGUF",
-    "description": "将模型导出为 GGUF 格式，可用于 llama.cpp 和其他工具。",
-    "exportButton": "导出 GGUF",
-    "comingSoon": "将在后续版本推出"
+    "description": "导出为 .gguf 文件，可用于 llama.cpp、LM Studio、Jan 等工具。",
+    "archNote": "仅支持 Llama、Mistral、Mixtral 架构。",
+    "exportButton": "导出为 GGUF",
+    "exporting": "导出中...",
+    "success": "GGUF 导出成功！",
+    "successHint": "文件保存至：",
+    "openFile": "打开文件夹",
+    "comingSoon": "将在后续版本推出",
+    "pipeline": {
+      "check": "准备",
+      "resolve": "解析模型",
+      "fuse": "融合转换"
+    }
   },
   "section": {
     "selectAdapter": "选择适配器（训练成果）",
@@ -35,6 +52,10 @@
     "quantization": "量化"
   },
   "selectAdapterPlaceholder": "请选择适配器",
+  "confirmDelete": "确认删除",
+  "deleteAdapter": "删除适配器",
+  "noWeights": "训练未完成",
+  "deleteAll": "删除全部适配器",
   "baseModel": "基础模型：",
   "exportLog": "导出日志",
   "pipeline": {
@@ -53,5 +74,26 @@
     "needAdapter": "请先选择适配器",
     "needModelName": "请先填写模型名称",
     "needQuantization": "请先选择量化方式"
+  },
+  "compat": {
+    "title": "导出前检查",
+    "checking": "检查中...",
+    "allGood": "全部检查通过，可以导出",
+    "hasIssues": "发现 {{count}} 个问题，请先修复再导出",
+    "keys": {
+      "adapter": "适配器权重",
+      "baseModel": "基础模型",
+      "modelName": "模型名称",
+      "ollama": "Ollama 可用"
+    },
+    "fix": "修复："
+  },
+  "verify": {
+    "title": "导出回归验证",
+    "running": "正在验证模型响应...",
+    "success": "模型响应正常，验证通过",
+    "failed": "验证失败",
+    "preview": "响应预览：",
+    "retry": "重试"
   }
 }

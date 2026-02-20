@@ -14,7 +14,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/Mcourtyard/m-courtyard)](https://github.com/Mcourtyard/m-courtyard/releases/latest)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![GitHub last commit](https://img.shields.io/github/last-commit/Mcourtyard/m-courtyard)](https://github.com/Mcourtyard/m-courtyard/commits/main)
-[![Discord](https://img.shields.io/discord/1471348538909790260?color=5865F2&label=Discord&logo=discord&logoColor=white)](https://discord.gg/hjkrHWrQ)
+[![Discord](https://img.shields.io/discord/1471348538909790260?color=5865F2&label=Discord&logo=discord&logoColor=white)](https://discord.gg/v9ajdTSZzA)
 
 **[English](./README.md)** | 中文
 
@@ -251,7 +251,7 @@ m-courtyard/
 
 ## 社区
 
-- [Discord](https://discord.gg/hjkrHWrQ) — 聊天、求助、分享你的微调模型
+- [Discord](https://discord.gg/v9ajdTSZzA) — 聊天、求助、分享你的微调模型
 - [GitHub Discussions](https://github.com/Mcourtyard/m-courtyard/discussions) — 功能建议、问答、公告
 - [GitHub Issues](https://github.com/Mcourtyard/m-courtyard/issues) — Bug 报告和功能请求
 

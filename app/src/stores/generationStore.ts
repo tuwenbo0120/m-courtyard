@@ -11,6 +11,7 @@ interface GenerationState {
   genStopped: boolean;
   aiLogs: string[];
   newVersionIds: string[];
+  ollamaPathMismatch: boolean;
 
   // Persisted form state (survive page navigation)
   formGenMode: string;
@@ -45,8 +46,9 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   genError: "",
   genStopped: false,
   aiLogs: [],
+  ollamaPathMismatch: false,
   formGenMode: "",
-  formGenSource: "builtin",
+  formGenSource: "ollama",
   formGenModel: "",
   formManualModelPath: "",
   newVersionIds: [],
@@ -57,7 +59,7 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
   _scrollToDatasets: null,
 
   startGeneration: () =>
-    set({ generating: true, genStopped: false, genProgress: "", genError: "" }),
+    set({ generating: true, genStopped: false, genProgress: "", genError: "", ollamaPathMismatch: false }),
 
   stopGeneration: () => set({ generating: false }),
 
@@ -71,16 +73,17 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
       genStopped: false,
       aiLogs: [],
       newVersionIds: [],
+      ollamaPathMismatch: false,
     }),
 
-  clearLogs: () => set({ aiLogs: [] }),
+  clearLogs: () => set({ aiLogs: [], ollamaPathMismatch: false }),
   clearNewVersions: () => set({ newVersionIds: [] }),
 
   setFormField: (field, value) => set({ [field]: value } as any),
 
   resetForm: () => set({
     formGenMode: "",
-    formGenSource: "builtin" as const,
+    formGenSource: "ollama" as const,
     formGenModel: "",
     formManualModelPath: "",
   }),
@@ -141,13 +144,14 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
     });
     unlistens.push(u3);
 
-    const u4 = await listen<{ message?: string }>("dataset:error", (e) => {
+    const u4 = await listen<{ message?: string; is_path_mismatch?: boolean }>("dataset:error", (e) => {
       set({
         generating: false,
         genProgress: "",
         genStep: 0,
         genTotal: 0,
         genError: e.payload.message || "Generation failed",
+        ollamaPathMismatch: e.payload.is_path_mismatch === true,
       });
       useTaskStore.getState().releaseTask();
       // Reload file list so historical datasets reappear after a failed generation

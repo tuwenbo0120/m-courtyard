@@ -9,6 +9,7 @@
   "gen.connect_ok": "✅ Ollama 连接成功\n   模型响应: {response}\n   完成原因: {reason}",
   "gen.connect_fail": "❌ Ollama 连接失败: {error}",
   "gen.connect_error": "无法连接 Ollama: {error}",
+  "gen.connect_error_404": "Ollama 找不到模型 '{model}'——daemon 未使用您配置的模型路径。请在终端执行以下命令后重启 Ollama：launchctl setenv OLLAMA_MODELS \"/path/to/your/models\"（将路径替换为您的实际路径）",
   "gen.segment_header": "\n── 第 {current}/{total} 段 ──\n📄 文本: {preview}...",
   "gen.empty_response": "❌ AI返回空内容\n   响应字段: {fields}\n   done_reason: {reason}",
   "gen.progress_status": "已生成 {success} 条（{failed} 失败）",
@@ -74,6 +75,14 @@
   "export.removed_tensors": "移除 {count} 个不兼容张量",
   "export.tensors_ready": "{count} 个张量就绪",
   "export.config_cleaned": "已清理配置",
+  "export.runtime_verify": "正在验证导出后的 Ollama 模型运行状态...",
+  "export.runtime_verify_fail": "运行态验证失败: {error}",
+
+  "gguf.starting": "正在启动 GGUF 导出流程...",
+  "gguf.fusing": "正在合并适配器并转换为 GGUF 格式（可能需要几分钟）...",
+  "gguf.fuse_fail": "GGUF 转换失败：{error}",
+  "gguf.no_output": "转换完成，但在输出目录中未找到 .gguf 文件。",
+  "gguf.done": "GGUF 已导出：{filename}（{size_mb} MB）",
 
   "inference.loading": "正在加载模型...",
   "inference.generating": "正在生成...",

@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
-import { Upload, AlertCircle, CheckCircle2, FolderOpen, ChevronDown, ChevronRight, Circle, Trash2, Loader2, Copy, Check } from "lucide-react";
+import { Upload, AlertCircle, AlertTriangle, CheckCircle2, XCircle, FolderOpen, ChevronDown, ChevronRight, Circle, Loader2, Copy, Check, Trash2 } from "lucide-react";
 import { useProjectStore } from "@/stores/projectStore";
 import { useExportStore } from "@/stores/exportStore";
+import { useExportGgufStore } from "@/stores/exportGgufStore";
 import { StepProgress } from "@/components/StepProgress";
 
 // Export pipeline step keys (labels come from i18n)
@@ -17,6 +18,14 @@ interface AdapterInfo {
   base_model: string;
 }
 
+interface OllamaPathInfo {
+  default_path: string;
+  effective_path: string;
+  configured_path: string | null;
+  configured_has_layout: boolean;
+  configured_model_count: number;
+}
+
 export function ExportPage() {
   const { t, i18n } = useTranslation("export");
   const { t: tc } = useTranslation("common");
@@ -25,14 +34,31 @@ export function ExportPage() {
   // Persistent export state from store
   const {
     isExporting, result, exportLogs, currentStep, exportProgress,
-    outputDir, startExport, clearAll: clearExportState, initListeners,
+    outputDir, ollamaDir, manifestDir, startExport, clearAll: clearExportState, initListeners,
+    pathWarning,
   } = useExportStore();
+
+  // GGUF export store
+  const {
+    isExporting: isGgufExporting,
+    result: ggufResult,
+    logs: ggufLogs,
+    progress: ggufProgress,
+    outputDir: ggufOutputDir,
+    filename: ggufFilename,
+    pathWarning: ggufPathWarning,
+    startExport: startGgufExport,
+    clearAll: clearGgufState,
+    initListeners: initGgufListeners,
+  } = useExportGgufStore();
 
   const [modelName, setModelName] = useState("");
   const [baseModel, setBaseModel] = useState("");
   const [quantization, setQuantization] = useState("");
   const [quantEdited, setQuantEdited] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [ggufCopied, setGgufCopied] = useState(false);
+  const ggufLogRef = useRef<HTMLDivElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
   // i18n labels for export pipeline steps
@@ -44,9 +70,42 @@ export function ExportPage() {
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
   const [selectedAdapter, setSelectedAdapter] = useState("");
   const [adapterDropdownOpen, setAdapterDropdownOpen] = useState(false);
+  const [deletingPath, setDeletingPath] = useState<string | null>(null);
+  const [ollamaPathInfo, setOllamaPathInfo] = useState<OllamaPathInfo | null>(null);
+
+  const handleDeleteAdapter = async (a: AdapterInfo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (deletingPath === a.path) {
+      // Second click = confirmed
+      try {
+        await invoke("delete_adapter", { adapterPath: a.path });
+        if (selectedAdapter === a.path) {
+          setSelectedAdapter("");
+          setBaseModel("");
+          setModelName("");
+        }
+        setDeletingPath(null);
+        await loadAdapters();
+      } catch (err) {
+        alert(String(err));
+        setDeletingPath(null);
+      }
+    } else {
+      setDeletingPath(a.path);
+    }
+  };
 
   // Init store listeners once
-  useEffect(() => { initListeners(); }, []);
+  useEffect(() => {
+    void initListeners();
+    void initGgufListeners();
+  }, [initListeners, initGgufListeners]);
+
+  useEffect(() => {
+    invoke<OllamaPathInfo>("get_ollama_path_info")
+      .then((info) => setOllamaPathInfo(info))
+      .catch(() => setOllamaPathInfo(null));
+  }, [result]);
 
   const selectAdapter = (adapter: AdapterInfo) => {
     setSelectedAdapter(adapter.path);
@@ -67,6 +126,19 @@ export function ExportPage() {
   const step2Done = !!modelName.trim();
   const quantDone = (step1Done && step2Done) || quantEdited;
 
+  // Derived from store result — declared early so useEffects below can reference them
+  const isSuccess = result?.startsWith("__success__:");
+  const isError = result?.startsWith("Error");
+  const successModelName = isSuccess ? result!.replace("__success__:", "") : "";
+  const ollamaPathType: "default" | "custom" | null = (() => {
+    if (!ollamaDir || !ollamaPathInfo) return null;
+    if (ollamaPathInfo.configured_path && ollamaDir === ollamaPathInfo.configured_path) return "custom";
+    if (ollamaDir === ollamaPathInfo.default_path) return "default";
+    if (ollamaDir === ollamaPathInfo.effective_path && ollamaPathInfo.configured_path) return "custom";
+    if (ollamaDir === ollamaPathInfo.effective_path) return "default";
+    return null;
+  })();
+
   useEffect(() => {
     if (step1Done && step2Done && !quantization && !quantEdited) {
       setQuantization("q4");
@@ -77,14 +149,35 @@ export function ExportPage() {
     if (!currentProject) return;
     try {
       const list = await invoke<AdapterInfo[]>("list_adapters", { projectId: currentProject.id });
+      // Show ALL adapters; those without weights can be deleted but not selected for export
+      setAdapters(list);
       const withWeights = list.filter((a) => a.has_weights);
-      setAdapters(withWeights);
-      // Auto-select latest adapter
       if (withWeights.length > 0 && !selectedAdapter) {
         selectAdapter(withWeights[0]);
       }
     } catch {
       setAdapters([]);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!adapters.length) return;
+    setDeletingPath("__all__");
+  };
+
+  const confirmDeleteAll = async () => {
+    try {
+      for (const a of adapters) {
+        await invoke("delete_adapter", { adapterPath: a.path });
+      }
+      setSelectedAdapter("");
+      setBaseModel("");
+      setModelName("");
+      setDeletingPath(null);
+      await loadAdapters();
+    } catch (err) {
+      alert(String(err));
+      setDeletingPath(null);
     }
   };
 
@@ -97,24 +190,56 @@ export function ExportPage() {
   // Clear export state when current project doesn't match the export owner
   useEffect(() => {
     const storeProjectId = useExportStore.getState().activeProjectId;
-    // If store has data from a different project, clear it
-    if (storeProjectId && storeProjectId !== currentProject?.id) {
-      clearExportState();
-    }
+    if (storeProjectId && storeProjectId !== currentProject?.id) clearExportState();
+    const ggufProjectId = useExportGgufStore.getState().activeProjectId;
+    if (ggufProjectId && ggufProjectId !== currentProject?.id) clearGgufState();
     if (currentProject) loadAdapters();
   }, [currentProject?.id]);
 
-  // Auto-scroll log
+  // Auto-scroll logs
   useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight;
-    }
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [exportLogs]);
+
+  useEffect(() => {
+    if (ggufLogRef.current) ggufLogRef.current.scrollTop = ggufLogRef.current.scrollHeight;
+  }, [ggufLogs]);
+
+  // Auto-trigger E-2 verification when export succeeds
+  useEffect(() => {
+    if (isSuccess && successModelName) {
+      setVerifyState("idle");
+      runVerify(successModelName);
+    }
+  }, [isSuccess, successModelName]);
+
+  // E-2: run post-export smoke test
+  const runVerify = async (name: string) => {
+    setVerifyState("running");
+    setVerifyPreview("");
+    setVerifyError("");
+    try {
+      const res = await invoke<{ ok: boolean; preview: string; error: string | null }>(
+        "verify_export_model", { modelName: name }
+      );
+      if (res.ok) {
+        setVerifyState("ok");
+        setVerifyPreview(res.preview);
+      } else {
+        setVerifyState("failed");
+        setVerifyError(res.error || "");
+      }
+    } catch (e) {
+      setVerifyState("failed");
+      setVerifyError(String(e));
+    }
+  };
 
   const handleExport = async () => {
     if (!modelName.trim() || !currentProject || !baseModel) return;
-    startExport(currentProject.id);
     try {
+      await initListeners();
+      startExport(currentProject.id);
       await invoke("export_to_ollama", {
         projectId: currentProject.id,
         modelName: modelName.trim(),
@@ -124,15 +249,42 @@ export function ExportPage() {
         lang: i18n.language,
       });
     } catch (e) {
-      useExportStore.getState().setResult(`Error: ${String(e)}`);
+      const store = useExportStore.getState();
+      store.clearAll();
+      store.setResult(`Error: ${String(e)}`);
     }
   };
 
-  // Parse result type and model name
-  const isSuccess = result?.startsWith("__success__:");
-  const isError = result?.startsWith("Error");
-  const successModelName = isSuccess ? result!.replace("__success__:", "") : "";
+  const isGgufArchSupported = (model: string): boolean => {
+    const lower = model.toLowerCase();
+    return lower.includes("llama") || lower.includes("mistral") || lower.includes("mixtral");
+  };
+  const ggufSupported = !!baseModel && isGgufArchSupported(baseModel);
+
+  const handleGgufExport = async () => {
+    if (!currentProject || !baseModel || !selectedAdapter) return;
+    try {
+      await initGgufListeners();
+      startGgufExport(currentProject.id);
+      await invoke("export_to_gguf", {
+        projectId: currentProject.id,
+        model: baseModel,
+        adapterPath: selectedAdapter || null,
+        lang: i18n.language,
+      });
+    } catch (e) {
+      const store = useExportGgufStore.getState();
+      store.clearAll();
+      store.setResult(`Error: ${String(e)}`);
+    }
+  };
+
   const [cmdCopied, setCmdCopied] = useState(false);
+
+  // E-2: post-export regression verification state
+  const [verifyState, setVerifyState] = useState<"idle" | "running" | "ok" | "failed">("idle");
+  const [verifyPreview, setVerifyPreview] = useState("");
+  const [verifyError, setVerifyError] = useState("");
 
   const [step1Open, setStep1Open] = useState(true);
   const [step2Open, setStep2Open] = useState(true);
@@ -229,9 +381,18 @@ export function ExportPage() {
                   )}
                 </span>
               </h3>
-              {selectedAdapter && (
+              {currentProject && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); invoke("open_adapter_folder", { adapterPath: selectedAdapter }); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (selectedAdapter) {
+                      // Open the adapters/ folder (parent of the specific adapter UUID folder)
+                      const adaptersDir = selectedAdapter.substring(0, selectedAdapter.lastIndexOf("/"));
+                      invoke("open_adapter_folder", { adapterPath: adaptersDir });
+                    } else {
+                      invoke("open_project_folder", { projectId: currentProject.id });
+                    }
+                  }}
                   className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
                 >
                   <FolderOpen size={10} />
@@ -275,27 +436,65 @@ export function ExportPage() {
                   <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-border bg-background p-2 shadow-lg">
                     {adapters.map((a) => {
                       const isSelected = selectedAdapter === a.path;
+                      const confirmingDelete = deletingPath === a.path;
+                      const canSelect = a.has_weights;
                       return (
-                        <button
+                        <div
                           key={a.path}
-                          onClick={() => selectAdapter(a)}
+                          onClick={() => { if (!confirmingDelete && canSelect) selectAdapter(a); }}
                           className={`flex w-full items-center gap-2 rounded-md border px-3 py-1.5 text-left text-xs transition-colors ${
                             isSelected
-                              ? "border-primary bg-primary/10 text-foreground"
-                              : "border-border text-muted-foreground hover:bg-accent"
+                              ? "border-primary bg-primary/10 text-foreground cursor-pointer"
+                              : canSelect
+                              ? "border-border text-muted-foreground hover:bg-accent cursor-pointer"
+                              : "border-border/50 text-muted-foreground/40 cursor-default"
                           }`}
                         >
-                          {isSelected ? <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span> : <span className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/30" />}
+                          {isSelected
+                            ? <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span>
+                            : <span className={`h-4 w-4 shrink-0 rounded-full border-2 ${canSelect ? "border-muted-foreground/30" : "border-muted-foreground/15"}`} />}
                           <div className="min-w-0 flex-1">
-                            <span className="font-medium text-foreground">{a.created}</span>
+                            <span className={`font-medium ${canSelect ? "text-foreground" : "text-muted-foreground/40"}`}>{a.created}</span>
                             <span className="ml-1.5 text-muted-foreground/50">{a.name.slice(0, 8)}</span>
-                            {a.base_model && (
-                              <span className="ml-1.5 text-muted-foreground/40">· {a.base_model}</span>
+                            {a.base_model && <span className="ml-1.5 text-muted-foreground/40">· {a.base_model}</span>}
+                            {!a.has_weights && (
+                              <span className="ml-1.5 rounded bg-warning/15 px-1 py-0.5 text-[10px] text-warning/80">{t("noWeights")}</span>
                             )}
                           </div>
-                        </button>
+                          <button
+                            onClick={(e) => handleDeleteAdapter(a, e)}
+                            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] transition-colors ${
+                              confirmingDelete
+                                ? "bg-destructive text-destructive-foreground"
+                                : "text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10"
+                            }`}
+                            title={t("deleteAdapter")}
+                          >
+                            {confirmingDelete ? t("confirmDelete") : <Trash2 size={11} />}
+                          </button>
+                        </div>
                       );
                     })}
+                    {/* Delete all row */}
+                    {adapters.length > 1 && (
+                      <div className="border-t border-border/50 pt-1 mt-1">
+                        {deletingPath === "__all__" ? (
+                          <div className="flex items-center gap-2 px-1">
+                            <span className="text-[10px] text-destructive flex-1">{t("confirmDelete")}?</span>
+                            <button onClick={confirmDeleteAll} className="rounded bg-destructive px-2 py-0.5 text-[10px] text-destructive-foreground">{t("confirmDelete")}</button>
+                            <button onClick={() => setDeletingPath(null)} className="rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-accent">✕</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteAll(); }}
+                            className="flex w-full items-center gap-1 rounded px-2 py-1 text-[10px] text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          >
+                            <Trash2 size={10} />
+                            {t("deleteAll")}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -388,16 +587,25 @@ export function ExportPage() {
           {ollamaInstalled === false && (
             <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
               <AlertCircle size={16} className="text-warning shrink-0" />
-              <p className="text-sm text-warning">
-                {t("ollama.notInstalled")}
+              <p className="text-sm text-warning">{t("ollama.notInstalled")}</p>
+            </div>
+          )}
+
+          {/* Path warning: configured Ollama models path is invalid; fallback applied */}
+          {pathWarning && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+              <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-300 leading-relaxed">
+                {t("ollamaPathWarning", { configuredPath: pathWarning.configuredPath, fallbackPath: pathWarning.fallbackPath })}
               </p>
             </div>
           )}
 
           <button
             onClick={handleExportWithValidation}
+            disabled={isExporting || isGgufExporting || !modelName.trim() || !baseModel.trim() || !quantization || adapters.length === 0 || ollamaInstalled === false}
             className={`flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
-              isExporting || !modelName.trim() || !baseModel.trim() || !quantization || adapters.length === 0 || ollamaInstalled === false
+              isExporting || isGgufExporting || !modelName.trim() || !baseModel.trim() || !quantization || adapters.length === 0 || ollamaInstalled === false
                 ? "bg-primary/50 text-primary-foreground/70 cursor-not-allowed"
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
             }`}
@@ -517,14 +725,44 @@ export function ExportPage() {
                   <CheckCircle2 size={18} className="text-success shrink-0" />
                   <span className="text-sm font-medium text-success">{t("ollama.success")}</span>
                 </div>
-                {outputDir && (
+                {(ollamaDir || manifestDir || outputDir) && (
                   <button
-                    onClick={() => invoke("open_adapter_folder", { adapterPath: outputDir })}
+                    onClick={() => invoke("open_adapter_folder", { adapterPath: ollamaDir || manifestDir || outputDir })}
                     className="flex items-center gap-1 text-[11px] text-success/60 hover:text-success transition-colors"
                   >
                     <FolderOpen size={12} />
                     {tc("openFolder")}
                   </button>
+                )}
+              </div>
+              {/* Path details */}
+              <div className="space-y-2">
+                {outputDir && (
+                  <div className="rounded-md bg-background/30 border border-success/10 px-3 py-2 space-y-1">
+                    <p className="text-[10px] text-success/50 font-medium uppercase tracking-wide">{t("ollama.outputLocation")}</p>
+                    <code className="text-[11px] text-success/70 font-mono break-all">{outputDir}</code>
+                  </div>
+                )}
+
+                {ollamaDir && (
+                  <div className="rounded-md bg-background/30 border border-success/10 px-3 py-2 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] text-success/50 font-medium uppercase tracking-wide">{t("ollama.ollamaModelsDir")}</p>
+                      {ollamaPathType && (
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] ${ollamaPathType === "custom" ? "bg-tag-trained/15 text-tag-trained" : "bg-muted text-muted-foreground"}`}>
+                          {ollamaPathType === "custom" ? t("ollama.pathCustom") : t("ollama.pathDefault")}
+                        </span>
+                      )}
+                    </div>
+                    <code className="text-[11px] text-success/70 font-mono break-all">{ollamaDir}</code>
+                  </div>
+                )}
+
+                {manifestDir && (
+                  <div className="rounded-md bg-background/30 border border-success/10 px-3 py-2 space-y-1">
+                    <p className="text-[10px] text-success/50 font-medium uppercase tracking-wide">{t("ollama.manifestDir")}</p>
+                    <code className="text-[11px] text-success/70 font-mono break-all">{manifestDir}</code>
+                  </div>
                 )}
               </div>
               {/* Row 2: Run hint for beginners */}
@@ -546,16 +784,151 @@ export function ExportPage() {
                   {cmdCopied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
                 </button>
               </div>
+
+              {/* E-2: Regression verification */}
+              {verifyState !== "idle" && (
+                <div className={`rounded-md border px-3 py-2 space-y-1 text-[11px] ${
+                  verifyState === "running" ? "border-border bg-background/30" :
+                  verifyState === "ok" ? "border-success/30 bg-success/5" :
+                  "border-destructive/30 bg-destructive/5"
+                }`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      {verifyState === "running" && <Loader2 size={12} className="animate-spin text-muted-foreground shrink-0" />}
+                      {verifyState === "ok" && <CheckCircle2 size={12} className="text-success shrink-0" />}
+                      {verifyState === "failed" && <XCircle size={12} className="text-destructive shrink-0" />}
+                      <span className={`font-medium ${
+                        verifyState === "running" ? "text-muted-foreground" :
+                        verifyState === "ok" ? "text-success" : "text-destructive"
+                      }`}>
+                        {verifyState === "running" ? t("verify.running") :
+                         verifyState === "ok" ? t("verify.success") :
+                         t("verify.failed")}
+                      </span>
+                    </div>
+                    {verifyState === "failed" && (
+                      <button
+                        onClick={() => runVerify(successModelName)}
+                        className="text-[10px] text-muted-foreground hover:text-foreground border border-border rounded px-1.5 py-0.5"
+                      >
+                        {t("verify.retry")}
+                      </button>
+                    )}
+                  </div>
+                  {verifyState === "ok" && verifyPreview && (
+                    <p className="text-muted-foreground/70">
+                      <span className="font-medium">{t("verify.preview")}</span> {verifyPreview}
+                    </p>
+                  )}
+                  {verifyState === "failed" && verifyError && (
+                    <p className="text-destructive/70 break-all">{verifyError}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
       </section>
 
       {/* GGUF Export */}
-      <div className="rounded-lg border border-border bg-card opacity-60 p-4 space-y-2">
-        <h3 className="text-sm font-semibold text-foreground">{t("gguf.title")}</h3>
-        <p className="text-xs text-muted-foreground">{t("gguf.description")}</p>
-        <p className="text-xs text-muted-foreground italic">{t("gguf.comingSoon")}</p>
+      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">{t("gguf.title")}</h3>
+          <p className="text-xs text-muted-foreground mt-1">{t("gguf.description")}</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-0.5">{t("gguf.archNote")}</p>
+        </div>
+
+        {/* GGUF path warning */}
+        {ggufPathWarning && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+            <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-amber-300 leading-relaxed">
+              {t("pathWarning", { configuredPath: ggufPathWarning.configuredPath, fallbackPath: ggufPathWarning.fallbackPath })}
+            </p>
+          </div>
+        )}
+
+        <button
+          onClick={handleGgufExport}
+          disabled={isGgufExporting || isExporting || !selectedAdapter || !baseModel || !ggufSupported}
+          className={`flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
+            isGgufExporting || isExporting || !selectedAdapter || !baseModel || !ggufSupported
+              ? "bg-primary/40 text-primary-foreground/50 cursor-not-allowed"
+              : "bg-primary text-primary-foreground hover:bg-primary/90"
+          }`}
+          title={!ggufSupported && baseModel ? t("gguf.archNote") : undefined}
+        >
+          <Upload size={16} />
+          {isGgufExporting ? t("gguf.exporting") : t("gguf.exportButton")}
+        </button>
+
+        {/* GGUF Progress */}
+        {(isGgufExporting || ggufLogs.length > 0) && (
+          <div className="space-y-2">
+            {isGgufExporting && ggufProgress && (
+              <div className="rounded-md border border-border bg-background/40 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <Loader2 size={12} className="animate-spin text-primary shrink-0" />
+                  <p className="text-xs text-muted-foreground whitespace-pre-line">{ggufProgress}</p>
+                </div>
+              </div>
+            )}
+            {ggufLogs.length > 0 && (
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-foreground">{t("exportLog")}</span>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(ggufLogs.join("\n")); setGgufCopied(true); setTimeout(() => setGgufCopied(false), 3000); }}
+                    className="flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent"
+                  >
+                    {ggufCopied ? <Check size={11} className="text-success" /> : <Copy size={11} />}
+                    {ggufCopied ? tc("copied") : tc("copyLog")}
+                  </button>
+                </div>
+                <div ref={ggufLogRef} className="h-[160px] overflow-auto rounded-lg border border-border bg-card p-3 font-mono text-xs leading-relaxed">
+                  {ggufLogs.map((line, i) => (
+                    <div key={i} className={
+                      line.includes("!!!") || line.includes("Error") ? "text-red-400" :
+                      line.includes("---") || line.includes("exported") ? "text-success" :
+                      "text-foreground"
+                    }>{line}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* GGUF Result */}
+        {ggufResult && !isGgufExporting && ggufResult.startsWith("__success__") && (
+          <div className="rounded-lg border border-success/30 bg-success/10 p-3 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={15} className="text-success shrink-0" />
+                <span className="text-sm font-medium text-success">{t("gguf.success")}</span>
+              </div>
+              {ggufOutputDir && (
+                <button
+                  onClick={() => invoke("open_adapter_folder", { adapterPath: ggufOutputDir })}
+                  className="flex items-center gap-1 text-[11px] text-success/60 hover:text-success transition-colors"
+                >
+                  <FolderOpen size={12} />
+                  {t("gguf.openFile")}
+                </button>
+              )}
+            </div>
+            {ggufFilename && (
+              <p className="text-xs text-success/70">
+                {t("gguf.successHint")} <span className="font-mono">{ggufFilename}</span>
+              </p>
+            )}
+          </div>
+        )}
+        {ggufResult && !isGgufExporting && ggufResult.startsWith("Error") && (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400 whitespace-pre-wrap">
+            {ggufResult}
+          </div>
+        )}
       </div>
     </div>
   );

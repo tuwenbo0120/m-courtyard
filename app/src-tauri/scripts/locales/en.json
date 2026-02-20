@@ -9,6 +9,7 @@
   "gen.connect_ok": "✅ Ollama connected\n   Model response: {response}\n   Done reason: {reason}",
   "gen.connect_fail": "❌ Ollama connection failed: {error}",
   "gen.connect_error": "Cannot connect to Ollama: {error}",
+  "gen.connect_error_404": "Ollama cannot find model '{model}' — the daemon is not using your configured models path. Please restart Ollama after running: launchctl setenv OLLAMA_MODELS \"/path/to/your/models\"  (replace with your actual path)",
   "gen.segment_header": "\n── Segment {current}/{total} ──\n📄 Text: {preview}...",
   "gen.empty_response": "❌ Empty AI response\n   Response fields: {fields}\n   done_reason: {reason}",
   "gen.progress_status": "Generated {success} samples ({failed} failed)",
@@ -74,6 +75,14 @@
   "export.removed_tensors": "removed {count} incompatible tensors",
   "export.tensors_ready": "{count} tensors ready",
   "export.config_cleaned": "cleaned config",
+  "export.runtime_verify": "Verifying exported Ollama model runtime...",
+  "export.runtime_verify_fail": "Runtime verification failed: {error}",
+
+  "gguf.starting": "Starting GGUF export pipeline...",
+  "gguf.fusing": "Fusing adapter and converting to GGUF format (this may take several minutes)...",
+  "gguf.fuse_fail": "GGUF conversion failed: {error}",
+  "gguf.no_output": "Conversion completed but no .gguf file was found in the output directory.",
+  "gguf.done": "GGUF exported: {filename} ({size_mb} MB)",
 
   "inference.loading": "Loading model...",
   "inference.generating": "Generating...",

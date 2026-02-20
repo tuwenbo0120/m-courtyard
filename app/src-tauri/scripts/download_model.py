@@ -8,7 +8,7 @@ Output format (one JSON line per event, parsed by Rust backend):
     {"event":"start","repo_id":"mlx-community/Qwen2.5-3B-Instruct-4bit"}
     {"event":"progress","downloaded":1234567,"total":5000000,"percent":24.7,"speed_mb":12.3,"file":"model.safetensors"}
     {"event":"file_done","file":"model.safetensors","size":5000000}
-    {"event":"complete","path":"/Users/.../hub/models--mlx-community--Qwen2.5-3B-Instruct-4bit/snapshots/abc123"}
+    {"event":"complete","path":"/path/to/hub/models--mlx-community--Qwen2.5-3B-Instruct-4bit/snapshots/abc123"}
     {"event":"error","message":"..."}
 """
 

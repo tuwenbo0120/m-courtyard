@@ -2,6 +2,7 @@ use serde::Serialize;
 use tauri::Emitter;
 use crate::python::PythonExecutor;
 use crate::fs::ProjectDirManager;
+use std::path::PathBuf;
 
 #[derive(Clone, Serialize)]
 pub struct EnvironmentStatus {
@@ -25,6 +26,15 @@ pub struct OllamaStatus {
 pub struct OllamaModel {
     pub name: String,
     pub size: String,
+}
+
+#[derive(Clone, Serialize)]
+pub struct OllamaPathInfo {
+    pub default_path: String,
+    pub effective_path: String,
+    pub configured_path: Option<String>,
+    pub configured_has_layout: bool,
+    pub configured_model_count: usize,
 }
 
 #[tauri::command]
@@ -238,6 +248,211 @@ fn get_os_version() -> String {
     }
 }
 
+pub fn default_ollama_models_dir() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".ollama")
+        .join("models")
+}
+
+fn config_ollama_models_dir() -> Option<PathBuf> {
+    let cfg = crate::commands::config::load_config();
+    cfg.model_paths.ollama.map(PathBuf::from)
+}
+
+fn launchctl_update_ollama_models(path: Option<&str>) -> Result<(), String> {
+    let mut cmd = std::process::Command::new("launchctl");
+    if let Some(p) = path {
+        cmd.args(["setenv", "OLLAMA_MODELS", p]);
+    } else {
+        cmd.args(["unsetenv", "OLLAMA_MODELS"]);
+    }
+
+    let out = cmd
+        .output()
+        .map_err(|e| format!("launchctl failed: {}", e))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        let detail = if !stderr.is_empty() { stderr } else { stdout };
+        return Err(format!("launchctl error: {}", detail));
+    }
+    Ok(())
+}
+
+fn restart_ollama_app() -> Result<(), String> {
+    // 1) Graceful quit of the Ollama GUI app.
+    let _ = std::process::Command::new("osascript")
+        .args(["-e", "quit app \"Ollama\""])
+        .output();
+
+    // 2) Force-kill any lingering `ollama serve` daemon processes so we don't
+    //    read stale OLLAMA_MODELS from the old process after restart.
+    let _ = std::process::Command::new("pkill")
+        .args(["-f", "ollama serve"])
+        .output();
+
+    // 3) Wait until all `ollama serve` processes are gone (up to 4 s).
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(4);
+    while std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        if running_ollama_daemon_pids().is_empty() {
+            break;
+        }
+    }
+
+    // 4) Relaunch Ollama.
+    let out = std::process::Command::new("open")
+        .args(["-a", "Ollama"])
+        .output()
+        .map_err(|e| format!("Failed to restart Ollama: {}", e))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        let detail = if !stderr.is_empty() { stderr } else { stdout };
+        return Err(format!("Failed to open Ollama app: {}", detail));
+    }
+
+    // 5) Wait until the new `ollama serve` daemon appears (up to 6 s).
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(6);
+    while std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        if !running_ollama_daemon_pids().is_empty() {
+            break;
+        }
+    }
+
+    Ok(())
+}
+
+/// Apply OLLAMA_MODELS into launchctl env and restart Ollama app.
+/// - Some(path): set custom OLLAMA_MODELS
+/// - None: unset OLLAMA_MODELS (daemon falls back to ~/.ollama/models)
+pub fn apply_ollama_models_dir_and_restart(path: Option<&std::path::Path>) -> Result<(), String> {
+    let value = path.map(|p| p.to_string_lossy().to_string());
+    launchctl_update_ollama_models(value.as_deref())?;
+    restart_ollama_app()
+}
+
+fn ollama_library_dir(base: &std::path::Path) -> PathBuf {
+    base.join("manifests")
+        .join("registry.ollama.ai")
+        .join("library")
+}
+
+fn count_ollama_models(base: &std::path::Path) -> usize {
+    let lib = ollama_library_dir(base);
+    std::fs::read_dir(&lib)
+        .ok()
+        .map(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+fn running_ollama_daemon_pids() -> Vec<String> {
+    let output = match std::process::Command::new("pgrep")
+        .args(["-f", "ollama serve"])
+        .output()
+    {
+        Ok(o) => o,
+        Err(_) => return vec![],
+    };
+    if !output.status.success() {
+        return vec![];
+    }
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(ToString::to_string)
+        .collect()
+}
+
+fn ollama_models_from_daemon_pid(pid: &str) -> Option<PathBuf> {
+    let out = std::process::Command::new("ps")
+        .args(["eww", "-p", pid, "-o", "command="])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let cmdline = String::from_utf8_lossy(&out.stdout);
+    cmdline
+        .split_whitespace()
+        .find_map(|tok| tok.strip_prefix("OLLAMA_MODELS="))
+        .filter(|s| !s.is_empty())
+        .map(PathBuf::from)
+}
+
+fn running_ollama_models_dir() -> Option<PathBuf> {
+    let pids = running_ollama_daemon_pids();
+    if pids.is_empty() {
+        return None;
+    }
+    for pid in pids {
+        if let Some(path) = ollama_models_from_daemon_pid(&pid) {
+            return Some(path);
+        }
+    }
+    // Daemon is running but has no OLLAMA_MODELS in its env → use Ollama default.
+    Some(default_ollama_models_dir())
+}
+
+/// Get OLLAMA_MODELS from the user's shell env (sources .zshrc + .zprofile).
+/// Returns None when not set.
+pub fn get_ollama_models_dir() -> Option<String> {
+    let out = std::process::Command::new("/bin/zsh")
+        .args(["-c", "source ~/.zprofile 2>/dev/null; source ~/.zshrc 2>/dev/null; printf '%s' \"$OLLAMA_MODELS\""])
+        .output()
+        .ok()?;
+    let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if s.is_empty() { None } else { Some(s) }
+}
+
+/// Resolve the effective Ollama models directory using a single source-of-truth strategy:
+/// 1) running daemon env (OLLAMA_MODELS),
+/// 2) running daemon default (~/.ollama/models when env missing),
+/// 3) shell env OLLAMA_MODELS,
+/// 4) app config model_paths.ollama,
+/// 5) default ~/.ollama/models.
+pub fn resolve_ollama_models_dir() -> PathBuf {
+    if let Some(path) = running_ollama_models_dir() {
+        return path;
+    }
+    if let Some(path) = get_ollama_models_dir() {
+        return PathBuf::from(path);
+    }
+    if let Some(path) = config_ollama_models_dir() {
+        return path;
+    }
+    default_ollama_models_dir()
+}
+
+#[tauri::command]
+pub fn get_ollama_path_info() -> Result<OllamaPathInfo, String> {
+    let default_path = default_ollama_models_dir();
+    let effective_path = resolve_ollama_models_dir();
+    let configured_path_buf = config_ollama_models_dir();
+
+    let (configured_has_layout, configured_model_count) = if let Some(ref p) = configured_path_buf {
+        (ollama_library_dir(p).exists(), count_ollama_models(p))
+    } else {
+        (false, 0)
+    };
+
+    Ok(OllamaPathInfo {
+        default_path: default_path.to_string_lossy().to_string(),
+        effective_path: effective_path.to_string_lossy().to_string(),
+        configured_path: configured_path_buf.map(|p| p.to_string_lossy().to_string()),
+        configured_has_layout,
+        configured_model_count,
+    })
+}
+
 #[tauri::command]
 pub async fn list_ollama_models() -> Result<Vec<OllamaModel>, String> {
     let ollama_bin = match PythonExecutor::find_ollama() {
@@ -245,6 +460,10 @@ pub async fn list_ollama_models() -> Result<Vec<OllamaModel>, String> {
         None => return Ok(vec![]),
     };
 
+    // `ollama list` communicates with the running daemon via HTTP (/api/tags).
+    // The OLLAMA_MODELS env var has no effect on this call — the daemon uses
+    // whatever path it was started with.  We query without any env override so
+    // the result faithfully reflects what the daemon currently knows about.
     let output = std::process::Command::new(&ollama_bin)
         .arg("list")
         .output()
@@ -268,4 +487,24 @@ pub async fn list_ollama_models() -> Result<Vec<OllamaModel>, String> {
     }
 
     Ok(models)
+}
+
+/// Apply the user's configured custom Ollama models path to the running daemon
+/// by setting the launchctl environment variable and restarting the Ollama app.
+/// Returns the path that was applied, or an error string.
+#[tauri::command]
+pub async fn fix_ollama_models_path() -> Result<String, String> {
+    let custom_dir = config_ollama_models_dir()
+        .ok_or_else(|| "No custom Ollama path configured in app settings.".to_string())?;
+
+    apply_ollama_models_dir_and_restart(Some(&custom_dir))?;
+    Ok(custom_dir.to_string_lossy().to_string())
+}
+
+/// Clear OLLAMA_MODELS from launchctl and restart Ollama, so daemon falls back
+/// to the default ~/.ollama/models path.
+#[tauri::command]
+pub async fn reset_ollama_models_path() -> Result<String, String> {
+    apply_ollama_models_dir_and_restart(None)?;
+    Ok(default_ollama_models_dir().to_string_lossy().to_string())
 }
