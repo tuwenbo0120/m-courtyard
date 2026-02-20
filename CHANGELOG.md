@@ -7,20 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.3] - 2026-02-20
 
+Delivers the **Batch Processing** cluster (PRD D-1 · D-2 · H-3): multi-file drag-and-drop import, merge-as-single-dataset toggle, generation queue with live per-file progress, and macOS completion notifications — enabling N files → 1 operation with background processing.
+
 ### Added
-- **Generation Queue View**: During dataset generation, the 1.1 file list area is replaced by a collapsible queue view — a single summary row (current file name + segment progress) that expands to a full scrollable list showing each file's status (completed ✓ / in-progress ⟳ / pending ○)
-- **Generation Stats Panel**: A stats card appears below the Data Preview panel during generation, showing two rows: current file name (with pulse indicator) and three inline stats — file index N/M · generated count success/total · success rate % (color-coded green/red based on threshold)
-- **Per-file Progress Tracking**: `generationStore` now tracks `genFiles`, `genCurrentFileIdx` (estimated from cumulative file-size ratio against segment progress), `genSuccessCount`, and `genFailCount` parsed from `dataset:progress` events
+- **Multi-file Drag-and-Drop Import**: Drag files or folders directly onto the 1.1 section to batch-import; overlay shows item count on hover; duplicate detection skips already-imported files
+- **Merge as Single Dataset Toggle**: Checkbox in the 1.1 toolbar controls whether final output datasets are merged into one file or kept separate per source file; defaults to off
+- **Generation Queue View**: While generation is running the 1.1 file list transforms into a collapsible queue — collapsed row shows the current file name and segment progress (step/total); expanding reveals the full file list with per-file status icons (completed / in-progress / pending)
+- **Generation Stats Panel**: Card below the Data Preview panel, visible during generation; row 1 shows the current file name with a live pulse indicator; row 2 shows file index N/M, generated count (success/total), and success rate % with green/red color coding
+- **Per-file Progress Tracking**: `generationStore` tracks `genFiles`, `genCurrentFileIdx` (estimated from cumulative file-size ratio against segment progress), `genSuccessCount`, and `genFailCount` (parsed from `dataset:progress` event desc)
+- **macOS Completion Notification**: System notification pushed via `osascript` when the full generation pipeline completes
+- **Training Queue**: "Add to Queue" button alongside the training start button; queue status panel below the dataset list shows queued, in-progress, and completed training jobs
+- **Clear All Files**: Trash icon button in the 1.1 toolbar triggers a modal confirmation dialog before deleting all imported raw files; supports pagination (10 files per page) with prev/next navigation
 
 ### Fixed
-- **Stop Generation Ineffective** (BUG-092): `GENERATION_PID` was cleared before `child.wait().await` in `generate_dataset`, making `stop_generation` unable to find the running process PID; moved the clear to after the wait
-- **Clear All No Confirmation** (BUG-093): Two-click confirmation pattern for "Clear All" was unreliable; replaced with a standard modal dialog (`showClearAllDialog` state)
-- **Frontend State Stuck After Stop** (BUG-094): Added fallback state resets in `handleStop` — if backend `dataset:stopped` event does not fire, `cleaning`/`generating`/taskLock are reset client-side
+- **Stop Generation Ineffective** (BUG-092): `GENERATION_PID` was cleared before `child.wait().await` in `generate_dataset`, so `stop_generation` always read PID 0 and could not kill the process; moved the clear to after the wait call
 
 ### Changed
-- **Merge as Single Dataset default**: Changed default value from `true` to `false`; tooltip updated to clarify the toggle controls final output format (merge outputs), not pre-processing merge
-- **Removed duplicate progress bar**: Progress bar and text below the "Stop Generation" button removed (now shown in the stats panel below the preview)
-- **Removed duplicate status bar**: The "已生成 N 条 (M 失败)" spinning bar at the top of the Data Preview panel removed; generation status is now centralized in the stats panel
+- **Generation status UI consolidated**: Removed redundant progress bar below the Stop button and the spinning status bar at the top of the Data Preview panel; all generation status is now shown in the queue row and stats panel
+- **Merge as Single Dataset** semantics clarified: the toggle controls output format (merge final datasets), not pre-processing; default changed from on to off
 
 ## [0.4.2] - 2026-02-20
 
