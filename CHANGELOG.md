@@ -177,6 +177,8 @@ Delivers the **Batch Processing** cluster (PRD D-1 · D-2 · H-3): multi-file dr
 - **GitHub Actions CI**: Automated .dmg build and release on tag push
 - **Discord Integration**: Automated release notifications via webhook
 
+[0.4.4]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.4
+[0.4.3]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.3
 [0.4.2]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.2
 [0.4.1]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.1
 [0.4.0]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.0
