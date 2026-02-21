@@ -6,6 +6,9 @@ import { useLocation } from "react-router-dom";
 import { Monitor, Languages, Info, FolderOpen, RefreshCw, Download, RotateCcw, Globe, Palette, Trash2, HardDrive } from "lucide-react";
 import { checkEnvironment, setupEnvironment, installUv, type EnvironmentStatus } from "@/services/environment";
 import { useThemeStore, type ThemeId } from "@/stores/themeStore";
+import { useTaskStore } from "@/stores/taskStore";
+import { useExportStore } from "@/stores/exportStore";
+import { useExportGgufStore } from "@/stores/exportGgufStore";
 
 interface AppConfigResponse {
   huggingface: string;
@@ -39,7 +42,12 @@ function formatBytes(bytes: number): string {
 export function SettingsPage() {
   const { t, i18n } = useTranslation("settings");
   const location = useLocation();
+  const taskLocked = useTaskStore((s) => s.activeProjectId !== null);
+  const isOllamaExporting = useExportStore((s) => s.isExporting);
+  const isGgufExporting = useExportGgufStore((s) => s.isExporting);
+  const cleanupBlockedByTask = taskLocked || isOllamaExporting || isGgufExporting;
   const downloadSourceRef = useRef<HTMLElement | null>(null);
+  const cacheRef = useRef<HTMLElement | null>(null);
   const [env, setEnv] = useState<EnvironmentStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [setupLoading, setSetupLoading] = useState(false);
@@ -58,6 +66,7 @@ export function SettingsPage() {
   const [cacheScanning, setCacheScanning] = useState(false);
   const [cacheCleaning, setCacheCleaning] = useState(false);
   const [cacheMsg, setCacheMsg] = useState<{ type: "success" | "warning"; text: string } | null>(null);
+  const [appVersion, setAppVersion] = useState<string>("...");
 
   const loadConfig = useCallback(async () => {
     try {
@@ -184,6 +193,10 @@ export function SettingsPage() {
   }, []);
 
   const handleCleanup = async () => {
+    if (cleanupBlockedByTask) {
+      setCacheMsg({ type: "warning", text: t("storage.cleanupBlockedByTask") });
+      return;
+    }
     setCacheCleaning(true);
     setCacheMsg(null);
     try {
@@ -213,15 +226,25 @@ export function SettingsPage() {
     loadConfig();
     loadOllamaPathInfo();
     scanCache();
+    // Load app version
+    import("@tauri-apps/api/app")
+      .then(api => api.getVersion())
+      .then(setAppVersion)
+      .catch(console.error);
   }, [loadConfig, loadOllamaPathInfo, scanCache]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get("focus") !== "download-source") return;
-    const el = downloadSourceRef.current;
+    const focus = params.get("focus");
+    if (!focus) return;
+    
+    let el: HTMLElement | null = null;
+    if (focus === "download-source") el = downloadSourceRef.current;
+    else if (focus === "cache") el = cacheRef.current;
+    
     if (!el) return;
     requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }, [location.search]);
 
@@ -647,7 +670,7 @@ export function SettingsPage() {
       </section>
 
       {/* Cache Management Section */}
-      <section className="space-y-4">
+      <section ref={cacheRef} className="space-y-4">
         <div className="flex items-center gap-2">
           <HardDrive size={18} className="text-muted-foreground" />
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">
@@ -729,12 +752,15 @@ export function SettingsPage() {
 
                 <button
                   onClick={handleCleanup}
-                  disabled={cacheCleaning}
+                  disabled={cacheCleaning || cleanupBlockedByTask}
                   className="flex w-full items-center justify-center gap-2 rounded-md bg-warning/15 border border-warning/30 px-4 py-2.5 text-sm font-medium text-warning transition-colors hover:bg-warning/25 disabled:opacity-50"
                 >
                   <Trash2 size={16} />
                   {cacheCleaning ? t("storage.cleaning") : t("storage.cleanupButton")}
                 </button>
+                {cleanupBlockedByTask && (
+                  <p className="text-xs text-warning">{t("storage.cleanupBlockedByTask")}</p>
+                )}
               </>
             )}
 
@@ -756,7 +782,7 @@ export function SettingsPage() {
         <div className="rounded-lg border border-border divide-y divide-border">
           <div className="flex items-center justify-between px-4 py-3">
             <span className="text-sm text-muted-foreground">{t("about.version")}</span>
-            <span className="text-sm font-medium text-foreground">0.1.0 MVP</span>
+            <span className="text-sm font-medium text-foreground">{appVersion}</span>
           </div>
           <div className="px-4 py-3">
             <p className="text-sm text-muted-foreground">{t("about.description")}</p>

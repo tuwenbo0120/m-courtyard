@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-02-21
+
+Delivers the **Storage Transparency** cluster: cleanable cache visibility on the dashboard, cleanup safety guard during active tasks, and dynamic version display.
+
+### Added
+- **Cache Indicator on Dashboard**: New status card on the home screen shows the current cleanable cache size in real time; color-coded green (clean) / amber (has cache); includes a shortcut button that navigates directly to the Settings → Cache Management section
+- **Cleanup Safety Guard** (BUG-100): One-click cleanup button in Settings is now disabled while any training, dataset generation, or export task is actively running; an in-handler early-return guard is also added as a second line of defence
+
+### Fixed
+- **Hardcoded Version Number** (BUG-101): Settings → About now dynamically reads the version via Tauri `getVersion()` instead of the hardcoded `0.1.0 MVP` string; the displayed version always matches the actual packaged release
+- **Settings Focus Routing**: Settings page now handles `?focus=cache` URL parameter, automatically scrolling to and centring the Cache Management section (mirrors existing `?focus=download-source` behaviour)
+
+### Changed
+- Dashboard status card grid expanded from 3 columns to 4 to accommodate the new cache card
+
 ## [0.4.3] - 2026-02-20
 
 Delivers the **Batch Processing** cluster (PRD D-1 · D-2 · H-3): multi-file drag-and-drop import, merge-as-single-dataset toggle, generation queue with live per-file progress, and macOS completion notifications — enabling N files → 1 operation with background processing.

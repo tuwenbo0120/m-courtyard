@@ -110,6 +110,7 @@
     "cleaning": "正在清理...",
     "noCache": "未发现可清理的缓存。",
     "cleanupDone": "已释放 {{size}}。清理了 {{exportCount}} 个导出中间文件、{{adapterCount}} 个空适配器。",
-    "cleanupError": "清理失败：{{error}}"
+    "cleanupError": "清理失败：{{error}}",
+    "cleanupBlockedByTask": "训练、数据集生成或导出任务进行中，暂不可执行一键清理。"
   }
 }

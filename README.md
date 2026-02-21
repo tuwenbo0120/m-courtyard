@@ -92,16 +92,14 @@ Most fine-tuning tools are CLI-heavy, cloud-dependent, or require juggling multi
 
 <!-- TODO: Add more platforms when available -->
 
-## What's New — v0.4.3
+## What's New — v0.4.4
 
-**Batch Processing** — N files → 1 operation, leave and come back to a notification.
+**Storage Transparency** — Know exactly how much cache your training runs are accumulating, and clean it up in one click.
 
-- **Multi-file drag-and-drop** — Drop files or folders onto the 1.1 section; duplicates skipped automatically
-- **Generation queue view** — The file list transforms into a live queue during generation: current file + segment progress in the collapsed row; expand to see per-file status (✓ / ⟳ / ○)
-- **Generation stats panel** — Card below the preview showing file N/M, generated count, and success rate (color-coded)
-- **Training queue** — Queue multiple training jobs; status panel shows all jobs in real time
-- **Merge as Single Dataset** — Toggle whether all source files output one combined dataset or separate datasets per file
-- **macOS completion notification** — System notification when the full pipeline finishes
+- **Cache indicator on dashboard** — Home screen now shows cleanable cache size; amber if there's something to reclaim, green when you're clear
+- **One-click jump to cleanup** — Click the button on the dashboard card to go straight to Settings → Cache Management
+- **Cleanup safety guard** — The cleanup button is automatically disabled during any active training, generation, or export to prevent accidental file conflicts
+- **Dynamic version number** — Settings → About now always shows the real packaged version; no more stale hardcoded strings
 
 [View full changelog →](CHANGELOG.md)
 

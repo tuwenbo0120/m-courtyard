@@ -110,6 +110,7 @@
     "cleaning": "Cleaning...",
     "noCache": "No cleanable cache found.",
     "cleanupDone": "Freed {{size}}. Removed {{exportCount}} export intermediates, {{adapterCount}} empty adapters.",
-    "cleanupError": "Cleanup failed: {{error}}"
+    "cleanupError": "Cleanup failed: {{error}}",
+    "cleanupBlockedByTask": "Cleanup is temporarily unavailable while training, dataset generation, or export is running."
   }
 }

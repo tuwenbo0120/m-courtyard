@@ -1,22 +1,35 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { invoke } from "@tauri-apps/api/core";
 import {
-  FolderPlus, Cpu, BookOpen, Database, Upload, Settings,
+  FolderPlus, Cpu, BookOpen, Database, Upload, Settings, HardDrive,
   CheckCircle2, XCircle, AlertCircle,
 } from "lucide-react";
 import { useProjectStore } from "@/stores/projectStore";
 import { checkEnvironment, type EnvironmentStatus } from "@/services/environment";
 
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const val = bytes / Math.pow(1024, i);
+  return `${val.toFixed(i >= 2 ? 1 : 0)} ${units[i]}`;
+}
+
 export function DashboardPage() {
-  const { t } = useTranslation(["nav", "common"]);
+  const { t } = useTranslation(["nav", "common", "settings"]);
   const navigate = useNavigate();
   const { projects, fetchProjects } = useProjectStore();
   const [env, setEnv] = useState<EnvironmentStatus | null>(null);
+  const [cacheUsage, setCacheUsage] = useState<{ cleanable_bytes: number } | null>(null);
 
   useEffect(() => {
     fetchProjects();
     checkEnvironment().then(setEnv).catch(console.error);
+    invoke<{ cleanable_bytes: number }>("scan_storage_usage")
+      .then(setCacheUsage)
+      .catch(console.error);
   }, [fetchProjects]);
 
   const { ensureCurrentProject } = useProjectStore();
@@ -91,7 +104,7 @@ export function DashboardPage() {
       </div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {/* Projects count */}
         <div className="rounded-lg border border-border p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -137,6 +150,25 @@ export function DashboardPage() {
           ) : (
             <p className="mt-2 text-xs text-muted-foreground">...</p>
           )}
+        </div>
+
+        {/* Cache */}
+        <div className="flex flex-col rounded-lg border border-border p-4">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <HardDrive size={14} />
+            {t("settings:storage.cleanableCache")}
+          </p>
+          <div className="mt-2 flex-1">
+            <p className={`text-3xl font-bold ${cacheUsage && cacheUsage.cleanable_bytes > 0 ? "text-warning" : "text-success"}`}>
+              {cacheUsage ? formatBytes(cacheUsage.cleanable_bytes) : "..."}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/settings?focus=cache")}
+            className="mt-3 w-full rounded bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+          >
+            {t("settings:storage.cleanupButton")}
+          </button>
         </div>
       </div>
 
