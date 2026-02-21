@@ -77,6 +77,7 @@
   "export.config_cleaned": "cleaned config",
   "export.runtime_verify": "Verifying exported Ollama model runtime...",
   "export.runtime_verify_fail": "Runtime verification failed: {error}",
+  "export.fused_cleaned": "Intermediate fused model files cleaned up to save disk space.",
 
   "gguf.starting": "Starting GGUF export pipeline...",
   "gguf.fusing": "Fusing adapter and converting to GGUF format (this may take several minutes)...",

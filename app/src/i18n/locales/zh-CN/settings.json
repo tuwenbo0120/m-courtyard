@@ -93,6 +93,23 @@
     "browse": "更改",
     "resetDefault": "恢复默认",
     "default": "默认",
-    "custom": "自定义"
+    "custom": "自定义",
+    "cacheManagement": "缓存管理",
+    "cacheManagementDesc": "导出过程产生的中间文件、训练检查点及临时文件。清理这些缓存不会影响您的项目和已导出的模型。",
+    "scanning": "正在扫描...",
+    "totalProjectData": "项目数据总量",
+    "cleanableCache": "可清理缓存",
+    "exportIntermediates": "导出中间文件",
+    "exportIntermediatesDesc": "导出时生成的融合模型副本（已导入 Ollama/GGUF 后不再需要）",
+    "trainingCheckpoints": "训练检查点",
+    "trainingCheckpointsDesc": "训练过程中的中间检查点文件（最终适配器会保留）",
+    "tempFiles": "临时文件",
+    "emptyAdapters": "空适配器文件夹",
+    "emptyAdaptersDesc": "因训练中断产生的空文件夹",
+    "cleanupButton": "一键清理缓存",
+    "cleaning": "正在清理...",
+    "noCache": "未发现可清理的缓存。",
+    "cleanupDone": "已释放 {{size}}。清理了 {{exportCount}} 个导出中间文件、{{adapterCount}} 个空适配器。",
+    "cleanupError": "清理失败：{{error}}"
   }
 }

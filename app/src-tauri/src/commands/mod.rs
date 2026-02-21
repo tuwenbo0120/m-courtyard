@@ -6,4 +6,5 @@ pub mod files;
 pub mod inference;
 pub mod notification;
 pub mod project;
+pub mod storage;
 pub mod training;

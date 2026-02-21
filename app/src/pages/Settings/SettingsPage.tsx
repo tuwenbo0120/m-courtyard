@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { useLocation } from "react-router-dom";
-import { Monitor, Languages, Info, FolderOpen, RefreshCw, Download, RotateCcw, Globe, Palette } from "lucide-react";
+import { Monitor, Languages, Info, FolderOpen, RefreshCw, Download, RotateCcw, Globe, Palette, Trash2, HardDrive } from "lucide-react";
 import { checkEnvironment, setupEnvironment, installUv, type EnvironmentStatus } from "@/services/environment";
 import { useThemeStore, type ThemeId } from "@/stores/themeStore";
 
@@ -28,6 +28,14 @@ interface OllamaPathInfo {
   configured_model_count: number;
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const val = bytes / Math.pow(1024, i);
+  return `${val.toFixed(i >= 2 ? 1 : 0)} ${units[i]}`;
+}
+
 export function SettingsPage() {
   const { t, i18n } = useTranslation("settings");
   const location = useLocation();
@@ -39,6 +47,17 @@ export function SettingsPage() {
   const [config, setConfig] = useState<AppConfigResponse | null>(null);
   const [ollamaPathInfo, setOllamaPathInfo] = useState<OllamaPathInfo | null>(null);
   const [storageMsg, setStorageMsg] = useState<{ type: "success" | "warning"; text: string } | null>(null);
+  const [cacheUsage, setCacheUsage] = useState<{
+    total_bytes: number;
+    cleanable_bytes: number;
+    export_fused_bytes: number;
+    empty_adapter_count: number;
+    tmp_bytes: number;
+    checkpoint_bytes: number;
+  } | null>(null);
+  const [cacheScanning, setCacheScanning] = useState(false);
+  const [cacheCleaning, setCacheCleaning] = useState(false);
+  const [cacheMsg, setCacheMsg] = useState<{ type: "success" | "warning"; text: string } | null>(null);
 
   const loadConfig = useCallback(async () => {
     try {
@@ -148,11 +167,53 @@ export function SettingsPage() {
     }
   };
 
+  const scanCache = useCallback(async () => {
+    setCacheScanning(true);
+    try {
+      const usage = await invoke<{
+        total_bytes: number;
+        cleanable_bytes: number;
+        export_fused_bytes: number;
+        empty_adapter_count: number;
+        tmp_bytes: number;
+        checkpoint_bytes: number;
+      }>("scan_storage_usage");
+      setCacheUsage(usage);
+    } catch { /* ignore */ }
+    setCacheScanning(false);
+  }, []);
+
+  const handleCleanup = async () => {
+    setCacheCleaning(true);
+    setCacheMsg(null);
+    try {
+      const result = await invoke<{
+        freed_bytes: number;
+        removed_export_fused: number;
+        removed_empty_adapters: number;
+        removed_tmp: boolean;
+      }>("cleanup_project_cache");
+      setCacheMsg({
+        type: "success",
+        text: t("storage.cleanupDone", {
+          size: formatBytes(result.freed_bytes),
+          exportCount: result.removed_export_fused,
+          adapterCount: result.removed_empty_adapters,
+        }),
+      });
+      await scanCache();
+    } catch (e) {
+      setCacheMsg({ type: "warning", text: t("storage.cleanupError", { error: String(e) }) });
+    }
+    setCacheCleaning(false);
+  };
+
   useEffect(() => {
     refresh();
     loadConfig();
     loadOllamaPathInfo();
-  }, [loadConfig, loadOllamaPathInfo]);
+    scanCache();
+  }, [loadConfig, loadOllamaPathInfo, scanCache]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -583,6 +644,105 @@ export function SettingsPage() {
             )}
           </div>
         </div>
+      </section>
+
+      {/* Cache Management Section */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <HardDrive size={18} className="text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+            {t("storage.cacheManagement")}
+          </h2>
+          <button
+            onClick={scanCache}
+            disabled={cacheScanning}
+            className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
+          >
+            <RefreshCw size={12} className={cacheScanning ? "animate-spin" : ""} />
+            {t("environment.refreshButton")}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {t("storage.cacheManagementDesc")}
+        </p>
+
+        {cacheMsg && (
+          <p className={`text-xs ${cacheMsg.type === "warning" ? "text-warning" : "text-success"}`}>
+            {cacheMsg.text}
+          </p>
+        )}
+
+        {cacheScanning && !cacheUsage ? (
+          <p className="text-xs text-muted-foreground">{t("storage.scanning")}</p>
+        ) : cacheUsage ? (
+          <>
+            <div className="rounded-lg border border-border divide-y divide-border">
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-muted-foreground">{t("storage.totalProjectData")}</span>
+                <span className="text-sm font-medium text-foreground">{formatBytes(cacheUsage.total_bytes)}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-muted-foreground">{t("storage.cleanableCache")}</span>
+                <span className={`text-sm font-medium ${cacheUsage.cleanable_bytes > 0 ? "text-warning" : "text-success"}`}>
+                  {formatBytes(cacheUsage.cleanable_bytes)}
+                </span>
+              </div>
+            </div>
+
+            {cacheUsage.cleanable_bytes > 0 && (
+              <>
+                <div className="rounded-lg border border-border divide-y divide-border">
+                  {cacheUsage.export_fused_bytes > 0 && (
+                    <div className="px-4 py-3 space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">{t("storage.exportIntermediates")}</span>
+                        <span className="text-sm font-medium text-warning">{formatBytes(cacheUsage.export_fused_bytes)}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/70">{t("storage.exportIntermediatesDesc")}</p>
+                    </div>
+                  )}
+                  {cacheUsage.checkpoint_bytes > 0 && (
+                    <div className="px-4 py-3 space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">{t("storage.trainingCheckpoints")}</span>
+                        <span className="text-sm font-medium text-warning">{formatBytes(cacheUsage.checkpoint_bytes)}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/70">{t("storage.trainingCheckpointsDesc")}</p>
+                    </div>
+                  )}
+                  {cacheUsage.tmp_bytes > 0 && (
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="text-sm text-muted-foreground">{t("storage.tempFiles")}</span>
+                      <span className="text-sm font-medium text-warning">{formatBytes(cacheUsage.tmp_bytes)}</span>
+                    </div>
+                  )}
+                  {cacheUsage.empty_adapter_count > 0 && (
+                    <div className="px-4 py-3 space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">{t("storage.emptyAdapters")}</span>
+                        <span className="text-sm font-medium text-muted-foreground">{cacheUsage.empty_adapter_count}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/70">{t("storage.emptyAdaptersDesc")}</p>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleCleanup}
+                  disabled={cacheCleaning}
+                  className="flex w-full items-center justify-center gap-2 rounded-md bg-warning/15 border border-warning/30 px-4 py-2.5 text-sm font-medium text-warning transition-colors hover:bg-warning/25 disabled:opacity-50"
+                >
+                  <Trash2 size={16} />
+                  {cacheCleaning ? t("storage.cleaning") : t("storage.cleanupButton")}
+                </button>
+              </>
+            )}
+
+            {cacheUsage.cleanable_bytes === 0 && (
+              <p className="text-xs text-success">{t("storage.noCache")}</p>
+            )}
+          </>
+        ) : null}
       </section>
 
       {/* About Section */}

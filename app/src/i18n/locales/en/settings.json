@@ -93,6 +93,23 @@
     "browse": "Change",
     "resetDefault": "Reset",
     "default": "Default",
-    "custom": "Custom"
+    "custom": "Custom",
+    "cacheManagement": "Cache Management",
+    "cacheManagementDesc": "Intermediate files generated during export, training checkpoints, and temporary files. These can be safely cleaned without affecting your projects or exported models.",
+    "scanning": "Scanning...",
+    "totalProjectData": "Total Project Data",
+    "cleanableCache": "Cleanable Cache",
+    "exportIntermediates": "Export Intermediates",
+    "exportIntermediatesDesc": "Fused model copies created during export (already imported to Ollama/GGUF)",
+    "trainingCheckpoints": "Training Checkpoints",
+    "trainingCheckpointsDesc": "Intermediate checkpoint files (final adapter is preserved)",
+    "tempFiles": "Temporary Files",
+    "emptyAdapters": "Empty Adapter Folders",
+    "emptyAdaptersDesc": "From interrupted training sessions",
+    "cleanupButton": "Clean Up Cache",
+    "cleaning": "Cleaning...",
+    "noCache": "No cleanable cache found.",
+    "cleanupDone": "Freed {{size}}. Removed {{exportCount}} export intermediates, {{adapterCount}} empty adapters.",
+    "cleanupError": "Cleanup failed: {{error}}"
   }
 }

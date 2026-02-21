@@ -490,9 +490,20 @@ def _run(args):
         manifest_dir = os.path.join(
             ollama_models, "manifests", "registry.ollama.ai", "library", args.model_name
         )
+
+        # Auto-cleanup intermediate fused files after successful export.
+        # The model is now stored in Ollama's own directory; these are no longer needed.
+        if os.path.isdir(fused_dir):
+            try:
+                shutil.rmtree(fused_dir, ignore_errors=True)
+                emit("progress", step="cleanup",
+                     desc=t("export.fused_cleaned"))
+            except Exception:
+                pass
+
         emit("complete",
              model_name=args.model_name,
-             output_dir=model_output,
+             output_dir=args.output_dir,
              ollama_dir=ollama_models,
              manifest_dir=manifest_dir)
     elif isinstance(result, tuple):

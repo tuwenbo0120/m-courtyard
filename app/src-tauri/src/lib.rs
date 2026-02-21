@@ -11,6 +11,7 @@ use commands::files::{import_files, list_project_files, read_file_content, delet
 use commands::dataset::{start_cleaning, generate_dataset, get_dataset_preview, stop_generation, list_dataset_versions, open_dataset_folder, sample_raw_files, preview_clean_segments};
 use commands::inference::start_inference;
 use commands::export::{export_to_ollama, export_to_gguf, verify_export_model};
+use commands::storage::{scan_storage_usage, cleanup_project_cache};
 use commands::notification::send_notification;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -68,6 +69,8 @@ pub fn run() {
             set_export_path,
             set_hf_source,
             send_notification,
+            scan_storage_usage,
+            cleanup_project_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
