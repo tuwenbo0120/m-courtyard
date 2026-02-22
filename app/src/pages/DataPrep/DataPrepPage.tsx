@@ -1076,6 +1076,68 @@ export function DataPrepPage() {
                         {t("addFolder")}
                       </button>
                     </div>
+                    <div className="mt-4 rounded-md border border-border/80 bg-muted/20">
+                      <button
+                        onClick={() => {
+                          const el = document.getElementById("advSettings1");
+                          if (el) el.classList.toggle("hidden");
+                          const icon = document.getElementById("advSettingsIcon1");
+                          if (icon) icon.classList.toggle("rotate-180");
+                        }}
+                        className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold text-foreground hover:bg-accent/50 transition-colors rounded-md"
+                      >
+                        {t("generate.advancedSettings")}
+                        <ChevronDown id="advSettingsIcon1" size={14} className="text-muted-foreground transition-transform duration-200" />
+                      </button>
+                      <div id="advSettings1" className="hidden border-t border-border/50 p-3 space-y-2">
+                        <label className="flex items-start gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 h-3.5 w-3.5 rounded border-border"
+                            checked={enablePrivacyFilter}
+                            onChange={(e) => setEnablePrivacyFilter(e.target.checked)}
+                            disabled={generating || cleaning}
+                          />
+                          <span className="text-foreground">
+                            {t("generate.privacyFilter")}
+                            <span className="ml-1 text-muted-foreground">{t("generate.privacyFilterHint")}</span>
+                          </span>
+                        </label>
+
+                        <label className="flex items-start gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 h-3.5 w-3.5 rounded border-border"
+                            checked={enableFuzzyDedup}
+                            onChange={(e) => setEnableFuzzyDedup(e.target.checked)}
+                            disabled={generating || cleaning}
+                          />
+                          <span className="text-foreground">
+                            {t("generate.fuzzyDedup")}
+                            <span className="ml-1 text-muted-foreground">{t("generate.fuzzyDedupHint")}</span>
+                          </span>
+                        </label>
+
+                        {enableFuzzyDedup && (
+                          <div className="space-y-1 pl-6">
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                              <span>{t("generate.fuzzyThreshold")}</span>
+                              <span>{fuzzyDedupThreshold.toFixed(2)}</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={0.5}
+                              max={1.0}
+                              step={0.05}
+                              value={fuzzyDedupThreshold}
+                              onChange={(e) => setFuzzyDedupThreshold(Number(e.target.value))}
+                              disabled={generating || cleaning}
+                              className="w-full"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1177,69 +1239,34 @@ export function DataPrepPage() {
                     </div>
                   )}
 
-                  <div className="rounded-md border border-border/80 bg-muted/20 p-3 space-y-2">
-                    <p className="text-xs font-semibold text-foreground">{t("generate.qualityEnhanceTitle")}</p>
-
-                    <label className="flex items-start gap-2 text-xs">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 h-3.5 w-3.5 rounded border-border"
-                        checked={enablePrivacyFilter}
-                        onChange={(e) => setEnablePrivacyFilter(e.target.checked)}
-                        disabled={generating || cleaning}
-                      />
-                      <span className="text-foreground">
-                        {t("generate.privacyFilter")}
-                        <span className="ml-1 text-muted-foreground">{t("generate.privacyFilterHint")}</span>
-                      </span>
-                    </label>
-
-                    <label className="flex items-start gap-2 text-xs">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 h-3.5 w-3.5 rounded border-border"
-                        checked={enableFuzzyDedup}
-                        onChange={(e) => setEnableFuzzyDedup(e.target.checked)}
-                        disabled={generating || cleaning}
-                      />
-                      <span className="text-foreground">
-                        {t("generate.fuzzyDedup")}
-                        <span className="ml-1 text-muted-foreground">{t("generate.fuzzyDedupHint")}</span>
-                      </span>
-                    </label>
-
-                    {enableFuzzyDedup && (
-                      <div className="space-y-1 pl-6">
-                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span>{t("generate.fuzzyThreshold")}</span>
-                          <span>{fuzzyDedupThreshold.toFixed(2)}</span>
-                        </div>
+                  <div className="mt-4 rounded-md border border-border/80 bg-muted/20">
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById("advSettings2");
+                        if (el) el.classList.toggle("hidden");
+                        const icon = document.getElementById("advSettingsIcon2");
+                        if (icon) icon.classList.toggle("rotate-180");
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold text-foreground hover:bg-accent/50 transition-colors rounded-md"
+                    >
+                      {t("generate.advancedSettings")}
+                      <ChevronDown id="advSettingsIcon2" size={14} className="text-muted-foreground transition-transform duration-200" />
+                    </button>
+                    <div id="advSettings2" className="hidden border-t border-border/50 p-3 space-y-2">
+                      <label className="flex items-start gap-2 text-xs">
                         <input
-                          type="range"
-                          min={0.5}
-                          max={1.0}
-                          step={0.05}
-                          value={fuzzyDedupThreshold}
-                          onChange={(e) => setFuzzyDedupThreshold(Number(e.target.value))}
+                          type="checkbox"
+                          className="mt-0.5 h-3.5 w-3.5 rounded border-border"
+                          checked={enableQualityScoring}
+                          onChange={(e) => setEnableQualityScoring(e.target.checked)}
                           disabled={generating || cleaning}
-                          className="w-full"
                         />
-                      </div>
-                    )}
-
-                    <label className="flex items-start gap-2 text-xs">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 h-3.5 w-3.5 rounded border-border"
-                        checked={enableQualityScoring}
-                        onChange={(e) => setEnableQualityScoring(e.target.checked)}
-                        disabled={generating || cleaning}
-                      />
-                      <span className="text-foreground">
-                        {t("generate.qualityScoring")}
-                        <span className="ml-1 text-muted-foreground">{t("generate.qualityScoringHint")}</span>
-                      </span>
-                    </label>
+                        <span className="text-foreground">
+                          {t("generate.qualityScoring")}
+                          <span className="ml-1 text-muted-foreground">{t("generate.qualityScoringHint")}</span>
+                        </span>
+                      </label>
+                    </div>
                   </div>
 
                   {/* 1.3 Generation type */}

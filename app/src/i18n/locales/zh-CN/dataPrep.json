@@ -65,7 +65,7 @@
     "refreshModels": "刷新模型列表",
     "builtinHint": "使用规则提取自动生成训练数据，无需 AI 模型，速度快但质量有限。",
     "ollamaHint": "使用本地 Ollama 大模型生成高质量训练数据，推荐使用 7B 以上模型。",
-    "qualityEnhanceTitle": "质量增强",
+    "advancedSettings": "高级设置",
     "privacyFilter": "隐私过滤",
     "privacyFilterHint": "将手机号、邮箱、证件号替换为占位符。",
     "fuzzyDedup": "模糊去重",
