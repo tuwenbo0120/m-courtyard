@@ -14,7 +14,7 @@ import re
 import sys
 import random
 
-from i18n import t, init_i18n, add_lang_arg
+from i18n import t, pt, init_i18n, init_prompt_i18n, detect_content_language, add_lang_arg
 
 
 def emit(event_type, **kwargs):
@@ -97,7 +97,7 @@ def extract_heading_qa(text: str) -> list[dict]:
 
             if body_lines and len("".join(body_lines)) >= 20:
                 answer = "\n".join(body_lines)
-                question = t("builtin.heading_question", heading=heading.strip('# ').strip())
+                question = pt("builtin.heading_question", heading=heading.strip('# ').strip())
                 results.append({
                     "messages": [
                         {"role": "user", "content": question},
@@ -115,10 +115,10 @@ def extract_sentence_qa(text: str) -> list[dict]:
     sentences = [s.strip() for s in sentences if len(s.strip()) >= 15]
 
     templates = [
-        (t("builtin.explain", topic="{topic}"), "{content}"),
-        (t("builtin.what_is", topic="{topic}"), "{content}"),
-        (t("builtin.describe", topic="{topic}"), "{content}"),
-        (t("builtin.tell_me", topic="{topic}"), "{content}"),
+        (pt("builtin.explain", topic="{topic}"), "{content}"),
+        (pt("builtin.what_is", topic="{topic}"), "{content}"),
+        (pt("builtin.describe", topic="{topic}"), "{content}"),
+        (pt("builtin.tell_me", topic="{topic}"), "{content}"),
     ]
 
     for sent in sentences:
@@ -162,11 +162,11 @@ def paragraph_to_style(text: str) -> list[dict]:
     paragraphs = [p.strip() for p in paragraphs if len(p.strip()) >= 30]
 
     style_templates = [
-        t("builtin.style_1"),
-        t("builtin.style_2"),
-        t("builtin.style_3"),
-        t("builtin.style_4"),
-        t("builtin.style_5"),
+        pt("builtin.style_1"),
+        pt("builtin.style_2"),
+        pt("builtin.style_3"),
+        pt("builtin.style_4"),
+        pt("builtin.style_5"),
     ]
 
     for para in paragraphs:
@@ -191,12 +191,12 @@ def paragraph_to_instruct(text: str) -> list[dict]:
     paragraphs = [p.strip() for p in paragraphs if len(p.strip()) >= 30]
 
     instruct_templates = [
-        t("builtin.instruct_1"),
-        t("builtin.instruct_2"),
-        t("builtin.instruct_3"),
-        t("builtin.instruct_4"),
-        t("builtin.instruct_5"),
-        t("builtin.instruct_6"),
+        pt("builtin.instruct_1"),
+        pt("builtin.instruct_2"),
+        pt("builtin.instruct_3"),
+        pt("builtin.instruct_4"),
+        pt("builtin.instruct_5"),
+        pt("builtin.instruct_6"),
     ]
 
     for para in paragraphs:
@@ -264,6 +264,11 @@ def main():
     if not segments:
         emit("error", message=t("builtin.no_valid_segments"))
         sys.exit(1)
+
+    # Detect content language → use matching templates for generated data
+    content_lang = detect_content_language(segments)
+    init_prompt_i18n(content_lang)
+    emit("log", message=t("gen.detected_lang", lang=content_lang))
 
     total = len(segments)
     emit("progress", step=0, total=total, desc=t("builtin.starting", count=total, mode=args.mode))

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.6] - 2026-02-24
+
+Critical bug-fix release addressing PDF/DOCX processing failures reported by the community and a UI regression in the data preview panel.
+
+### Added
+- **PDF & DOCX Training Support**: Import and train directly from `.pdf` and `.docx` files — no conversion to `.txt` required; dependencies (`PyPDF2`, `python-docx`) are auto-installed on first use via `uv`
+- **Auto-install Document Dependencies**: `ensure_doc_deps()` runs once per session at the start of cleaning and file preview; silently installs missing libraries so users never see a manual `pip install` instruction
+- **Content Language Auto-Detection**: Generation scripts now detect the dominant language of source content (CJK, Latin, Cyrillic, Arabic, Hangul, Kana) and automatically select matching prompt templates — Chinese UI + English PDF now produces English training data without language-mismatch rejections
+- **Dual i18n Context**: `t()` for UI/log messages (follows `--lang` flag), `pt()` for LLM prompt templates (follows detected content language); easily extensible by adding a new `locales/<lang>.json` file
+
+### Fixed
+- **PDF/DOCX Generation Code 1** (BUG-108/109): All builds over the past week exited with `code 1` when source files included PDFs; root cause was missing `PyPDF2`/`python-docx` and no extraction path in the cleaning pipeline; now fully resolved
+- **Data Preview Panel Collapse** (BUG-110): The right-hand log panel collapsed to a blank card immediately after clicking "Start Generation" if the user was on the Smart Segmentation tab; removing a redundant `&& previewTab !== "segment"` gate and adding explicit `setPreviewTab("data")` in all three generation entry points (`handleStartPipeline`, `startGenerationStep`, `handleRetryFailed`) fixes this permanently
+- **Language Mismatch Rejection** (BUG-111): With Chinese UI language, English PDF content was being rejected mid-generation due to a mismatch between UI-language prompts and English-language content; prompts now follow content language, not UI language
+
+### Changed
+- Prompt templates in `generate_dataset_ollama.py` and `generate_dataset_builtin.py` now use `pt()` instead of `t()`; log/error messages retain `t()` as before
+
 ## [0.4.5] - 2026-02-23
 
 Delivers the **Data Quality Improvement** cluster (PRD D-3 · D-4 · D-5 · D-6) plus a critical cross-project isolation fix, a reworked Smart Segmentation preview UX, and readability improvements.

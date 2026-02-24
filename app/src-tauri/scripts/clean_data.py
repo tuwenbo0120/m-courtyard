@@ -387,10 +387,16 @@ def main():
                 }
             )
 
-        # Read raw for stats
+        # Read raw for stats (use extracted text for binary docs)
         try:
-            with open(input_path, "r", encoding="utf-8", errors="replace") as f:
-                raw_text = f.read()
+            file_ext = os.path.splitext(input_path)[1].lower()
+            if file_ext == ".pdf":
+                raw_text = read_pdf(input_path) or ""
+            elif file_ext == ".docx":
+                raw_text = read_docx(input_path) or ""
+            else:
+                with open(input_path, "r", encoding="utf-8", errors="replace") as f:
+                    raw_text = f.read()
             total_raw_chars += len(raw_text)
 
             raw_paras = raw_text.split("\n\n")

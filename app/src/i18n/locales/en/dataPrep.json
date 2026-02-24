@@ -82,7 +82,9 @@
   "preview": {
     "title": "Preview",
     "lines": "{{count}} lines",
-    "noContent": "Select a file to preview its content"
+    "noContent": "Select a file to preview its content",
+    "empty": "This file is empty.",
+    "binaryEmpty": "No text could be extracted from this document. It may be a scanned image PDF or a protected file."
   },
   "section": {
     "selectFiles": "Select Raw Data Files",

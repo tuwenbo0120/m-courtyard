@@ -92,14 +92,14 @@ Most fine-tuning tools are CLI-heavy, cloud-dependent, or require juggling multi
 
 <!-- TODO: Add more platforms when available -->
 
-## What's New — v0.4.4
+## What's New — v0.4.6
 
-**Storage Transparency** — Know exactly how much cache your training runs are accumulating, and clean it up in one click.
+**PDF & DOCX Support is here** — Drop in your PDFs and Word documents and M-Courtyard will handle the rest. No manual conversion required.
 
-- **Cache indicator on dashboard** — Home screen now shows cleanable cache size; amber if there's something to reclaim, green when you're clear
-- **One-click jump to cleanup** — Click the button on the dashboard card to go straight to Settings → Cache Management
-- **Cleanup safety guard** — The cleanup button is automatically disabled during any active training, generation, or export to prevent accidental file conflicts
-- **Dynamic version number** — Settings → About now always shows the real packaged version; no more stale hardcoded strings
+- **Direct PDF/DOCX import** — Use `.pdf` and `.docx` files as training sources; text is automatically extracted before cleaning and generation
+- **Zero-config setup** — Required Python libraries (`PyPDF2`, `python-docx`) are silently auto-installed on first use — no `pip install` needed
+- **Smart prompt language matching** — Generation scripts now detect whether your source content is Chinese, English, Japanese, etc. and use the right prompt language automatically, so you won't see language-mismatch errors anymore
+- **Data preview panel fix** — The log panel no longer collapses mid-generation; it stays open from the moment you click "Start Generation"
 
 [View full changelog →](CHANGELOG.md)
 

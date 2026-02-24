@@ -18,7 +18,7 @@ import sys
 import urllib.request
 import urllib.error
 
-from i18n import t, init_i18n, add_lang_arg
+from i18n import t, pt, init_i18n, init_prompt_i18n, detect_content_language, add_lang_arg
 
 
 def emit(event_type, **kwargs):
@@ -27,22 +27,22 @@ def emit(event_type, **kwargs):
 
 
 def get_system_prompts():
-    """Return system prompts per mode using current i18n language."""
+    """Return system prompts per mode using prompt language (content-aware)."""
     return {
-        "qa": t("gen.prompt.qa.system"),
-        "style": t("gen.prompt.style.system"),
-        "chat": t("gen.prompt.chat.system"),
-        "instruct": t("gen.prompt.instruct.system"),
+        "qa": pt("gen.prompt.qa.system"),
+        "style": pt("gen.prompt.style.system"),
+        "chat": pt("gen.prompt.chat.system"),
+        "instruct": pt("gen.prompt.instruct.system"),
     }
 
 
 def get_user_templates():
-    """Return user message templates per mode using current i18n language."""
+    """Return user message templates per mode using prompt language (content-aware)."""
     return {
-        "qa": t("gen.prompt.qa.user"),
-        "style": t("gen.prompt.style.user"),
-        "chat": t("gen.prompt.chat.user"),
-        "instruct": t("gen.prompt.instruct.user"),
+        "qa": pt("gen.prompt.qa.user"),
+        "style": pt("gen.prompt.style.user"),
+        "chat": pt("gen.prompt.chat.user"),
+        "instruct": pt("gen.prompt.instruct.user"),
     }
 
 
@@ -526,6 +526,11 @@ def main():
         emit("error", message=t("gen.no_valid_segments"))
         sys.exit(1)
 
+    # Detect content language → use matching prompt templates
+    content_lang = detect_content_language(segments)
+    init_prompt_i18n(content_lang)
+    emit("log", message=t("gen.detected_lang", lang=content_lang))
+
     dataset_dir = args.output_dir if args.output_dir else os.path.join(args.project_dir, "dataset")
     os.makedirs(dataset_dir, exist_ok=True)
     train_path = os.path.join(dataset_dir, "train.jsonl")
@@ -589,7 +594,7 @@ def main():
 
             try:
                 user_msg = user_template.format(text=text[:2000])
-                user_msg = f"{user_msg}\n\n{t('gen.prompt.keep_language')}"
+                user_msg = f"{user_msg}\n\n{pt('gen.prompt.keep_language')}"
                 # Chat/style modes need more tokens (conversation arrays / creative content)
                 n_predict = 4096 if args.mode in ("style", "chat") else 2048
                 api_result = call_ollama(args.model, system_prompt, user_msg, temperature=temp, num_predict=n_predict)

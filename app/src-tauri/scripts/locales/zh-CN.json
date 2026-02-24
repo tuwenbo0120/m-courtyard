@@ -26,6 +26,7 @@
   "gen.summary": "\n══ 生成完毕 ══\n   ✅ 成功: {success}\n   ❌ 失败: {failed}\n   📊 总计: {total}",
   "gen.no_valid_data": "未生成有效数据（{total}段全部失败）。请查看AI日志排查原因。",
   "gen.saved": "💾 已保存: train.jsonl ({train}条), valid.jsonl ({valid}条)",
+  "gen.detected_lang": "🌐 检测到内容语言: {lang}，将使用对应语言的提示模板",
 
   "gen.prompt.qa.system": "你是一个专业的训练数据生成专家。你的任务是根据给定文本，生成一个高质量的问答对。\n要求：\n1. 问题应该有深度，不要简单的事实提取，要考验理解力和分析力\n2. 问题类型要多样：可以是理解型、分析型、推理型、应用型\n3. 答案要完整、有条理，包含足够的细节和解释\n4. 答案应基于文本内容但用自己的语言组织，不要直接复制原文\n5. 直接输出JSON，格式：{\"question\": \"...\", \"answer\": \"...\"}",
   "gen.prompt.qa.user": "请根据以下文本生成一个有深度的问答对。问题应考验理解和分析能力，答案要完整有条理。只输出JSON。\n\n【文本内容】\n{text}",
@@ -45,8 +46,8 @@
   "clean.skip_empty": "⚠️ 跳过（空文件）: {filename}",
   "clean.error_file": "❌ 处理 {filename} 出错: {error}",
   "clean.complete": "清洗完成: 从 {files} 个文件中提取 {segments} 个段落",
-  "clean.docx_not_installed": "未安装 python-docx，跳过 .docx: {filename}。请运行: pip install python-docx",
-  "clean.pdf_not_installed": "未安装 PyPDF2，跳过 .pdf: {filename}。请运行: pip install PyPDF2",
+  "clean.docx_not_installed": "未安装 python-docx，跳过 .docx: {filename}。请在设置页重新运行环境配置。",
+  "clean.pdf_not_installed": "未安装 PyPDF2，跳过 .pdf: {filename}。请在设置页重新运行环境配置。",
 
   "export.ollama_not_found": "Ollama 未安装或未运行。",
   "export.model_not_found": "无法解析模型: {model}",

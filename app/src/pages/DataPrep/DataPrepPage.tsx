@@ -574,6 +574,7 @@ export function DataPrepPage() {
     const store = useGenerationStore.getState();
     store.clearLogs();
     setGenFiles(rawFiles.map(f => ({ name: f.name, sizeBytes: f.size_bytes })));
+    setPreviewTab("data");
     scrollToPreviewTop();
     setQueueExpanded(false);
     // Stage 1: always clean first so generated dataset strictly matches current raw files
@@ -630,6 +631,7 @@ export function DataPrepPage() {
       return;
     }
     setPipelineStage("generating");
+    setPreviewTab("data"); // Ensure preview tab is explicitly switched to data to prevent panel collapsing
     setDatasetPage(0);
     setExpandedDataset(null);
     const store = useGenerationStore.getState();
@@ -751,10 +753,21 @@ export function DataPrepPage() {
       const content: string = await invoke("read_file_content", {
         path: file.path,
       });
-      setPreview(content.slice(0, 5000));
+      if (!content || content.trim().length === 0) {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "";
+        if (["pdf", "docx", "doc"].includes(ext)) {
+          setPreview(t("preview.binaryEmpty"));
+        } else {
+          setPreview(t("preview.empty"));
+        }
+      } else {
+        setPreview(content.slice(0, 5000));
+      }
       setPreviewName(file.name);
-    } catch (e) {
-      console.error("Preview failed:", e);
+    } catch (e: any) {
+      const msg = typeof e === "string" ? e : e?.message || "Unknown error";
+      setPreview(msg);
+      setPreviewName(file.name);
     }
   };
 
@@ -807,6 +820,7 @@ export function DataPrepPage() {
 
     setRetryingVersion(version);
     setPipelineStage("generating");
+    setPreviewTab("data"); // Ensure preview tab is active during generation to avoid panel collapse
     const store = useGenerationStore.getState();
     store.clearLogs();
     store.startGeneration();
@@ -1445,7 +1459,7 @@ export function DataPrepPage() {
             </div>
             <div className="border-t border-border px-4 pb-4 pt-0">
               {/* ─── Data Preview tab content ─── */}
-              {(generating || cleaning || previewTab === "data") && previewTab !== "segment" && (
+              {(generating || cleaning || previewTab === "data") && (
                 <div ref={logScrollRef} className="log-scroll-container min-h-[560px] max-h-[calc(100vh-240px)] overflow-auto rounded-md border border-border/60 bg-muted/10 p-3 mt-3">
                   {(generating || aiLogs.length > 0) ? (
                     <div className="space-y-0.5 font-mono text-sm leading-loose">

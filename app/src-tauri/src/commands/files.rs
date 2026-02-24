@@ -1,6 +1,47 @@
 use serde::Serialize;
 use std::fs;
+use std::sync::OnceLock;
 use crate::fs::ProjectDirManager;
+use crate::python::PythonExecutor;
+
+/// Whether doc-parsing deps (PyPDF2, python-docx) have been checked/installed this session.
+static DOC_DEPS_OK: OnceLock<bool> = OnceLock::new();
+
+/// Ensure PyPDF2 and python-docx are installed in the app venv.
+/// Runs the check only once per app session; auto-installs via uv if missing.
+pub fn ensure_doc_deps() {
+    DOC_DEPS_OK.get_or_init(|| {
+        let executor = PythonExecutor::default();
+        if !executor.is_ready() {
+            return false;
+        }
+
+        // Quick check: can we import both?
+        if let Ok(output) = std::process::Command::new(executor.python_bin())
+            .args(["-c", "import PyPDF2; from docx import Document"])
+            .output()
+        {
+            if output.status.success() {
+                return true; // Already installed
+            }
+        }
+
+        // Auto-install via uv
+        if let Some(uv) = PythonExecutor::find_uv() {
+            if let Ok(output) = std::process::Command::new(&uv)
+                .args([
+                    "pip", "install", "PyPDF2", "python-docx",
+                    "--python", &executor.python_bin().to_string_lossy(),
+                ])
+                .output()
+            {
+                return output.status.success();
+            }
+        }
+
+        false
+    });
+}
 
 #[derive(Clone, Serialize)]
 pub struct FileInfo {
@@ -128,9 +169,65 @@ pub async fn list_project_files(
     Ok(files)
 }
 
+/// Binary document extensions that require Python-based text extraction.
+const BINARY_DOC_EXTENSIONS: &[&str] = &["pdf", "docx", "doc"];
+
+fn is_binary_doc(path: &std::path::Path) -> bool {
+    path.extension()
+        .map(|e| BINARY_DOC_EXTENSIONS.contains(&e.to_string_lossy().to_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
+/// Extract text from a binary document (PDF/DOCX) via the bundled Python helper.
+/// `max_chars`: 0 means unlimited.
+/// Automatically ensures PyPDF2/python-docx are installed before running.
+pub fn extract_text_via_python(file_path: &str, max_chars: usize) -> Result<String, String> {
+    let executor = PythonExecutor::default();
+    if !executor.is_ready() {
+        return Err("Python environment is not ready. Please set up the environment first.".into());
+    }
+
+    // Auto-install document parsing deps if missing (once per session)
+    ensure_doc_deps();
+
+    let script = PythonExecutor::scripts_dir().join("extract_text.py");
+    if !script.exists() {
+        return Err(format!("extract_text.py not found at: {}", script.display()));
+    }
+
+    let mut args = vec![
+        script.to_string_lossy().to_string(),
+        file_path.to_string(),
+    ];
+    if max_chars > 0 {
+        args.push("--max-chars".to_string());
+        args.push(max_chars.to_string());
+    }
+
+    let output = std::process::Command::new(executor.python_bin())
+        .args(&args)
+        .output()
+        .map_err(|e| format!("Failed to run extract_text.py: {}", e))?;
+
+    if !output.status.success() {
+        return Err("Text extraction failed".into());
+    }
+
+    let text = String::from_utf8_lossy(&output.stdout).to_string();
+    if text == "__EXTRACT_LIB_MISSING__" {
+        return Err("PyPDF2/python-docx auto-install failed. Please check your Python environment.".into());
+    }
+    Ok(text)
+}
+
 #[tauri::command]
 pub async fn read_file_content(path: String) -> Result<String, String> {
-    fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
+    let p = std::path::Path::new(&path);
+    if is_binary_doc(p) {
+        extract_text_via_python(&path, 0)
+    } else {
+        fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
+    }
 }
 
 #[tauri::command]

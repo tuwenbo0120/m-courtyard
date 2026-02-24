@@ -41,6 +41,9 @@ pub async fn start_cleaning(
         return Err("Python environment is not ready. Please set up the environment first.".into());
     }
 
+    // Auto-install PyPDF2/python-docx if missing (once per session)
+    crate::commands::files::ensure_doc_deps();
+
     let dir_manager = ProjectDirManager::new();
     let project_path = dir_manager.project_path(&project_id);
 
@@ -625,6 +628,9 @@ pub fn list_dataset_versions(
     Ok(versions)
 }
 
+/// Binary document extensions that need Python-based text extraction for snippets.
+const BINARY_SNIPPET_EXTS: &[&str] = &["pdf", "docx", "doc"];
+
 /// Sample raw file content for mode compatibility detection
 #[tauri::command]
 pub fn sample_raw_files(project_id: String) -> Result<Vec<RawFileSample>, String> {
@@ -643,15 +649,23 @@ pub fn sample_raw_files(project_id: String) -> Result<Vec<RawFileSample>, String
         let ext = path.extension().unwrap_or_default().to_string_lossy().to_lowercase();
         let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
 
-        // Read first 2000 bytes for content analysis
-        let snippet = match std::fs::read(&path) {
-            Ok(bytes) => {
-                let take = bytes.len().min(2000);
-                // Try UTF-8, fallback to lossy
-                String::from_utf8(bytes[..take].to_vec())
-                    .unwrap_or_else(|_| String::from_utf8_lossy(&bytes[..take]).to_string())
+        let snippet = if BINARY_SNIPPET_EXTS.contains(&ext.as_str()) {
+            // Use Python helper to extract text from binary documents
+            crate::commands::files::extract_text_via_python(
+                &path.to_string_lossy(),
+                2000,
+            ).unwrap_or_default()
+        } else {
+            // Read first 2000 bytes for content analysis
+            match std::fs::read(&path) {
+                Ok(bytes) => {
+                    let take = bytes.len().min(2000);
+                    // Try UTF-8, fallback to lossy
+                    String::from_utf8(bytes[..take].to_vec())
+                        .unwrap_or_else(|_| String::from_utf8_lossy(&bytes[..take]).to_string())
+                }
+                Err(_) => String::new(),
             }
-            Err(_) => String::new(),
         };
 
         samples.push(RawFileSample { name, ext, size, snippet });

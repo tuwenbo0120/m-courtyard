@@ -116,10 +116,10 @@ pub async fn setup_environment(app: tauri::AppHandle) -> Result<(), String> {
         "percent": 30
     }));
 
-    // Step 2: Install mlx-lm
+    // Step 2: Install mlx-lm + document parsing deps (PyPDF2, python-docx)
     let pip_result = tokio::process::Command::new(&uv_path)
         .args([
-            "pip", "install", "mlx-lm",
+            "pip", "install", "mlx-lm", "PyPDF2", "python-docx",
             "--python", &executor.python_bin().to_string_lossy(),
         ])
         .output()

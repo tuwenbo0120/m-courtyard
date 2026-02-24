@@ -82,7 +82,9 @@
   "preview": {
     "title": "预览",
     "lines": "{{count}} 行",
-    "noContent": "选择文件以预览内容"
+    "noContent": "选择文件以预览内容",
+    "empty": "该文件为空。",
+    "binaryEmpty": "无法从该文档中提取文本内容。可能是扫描版图片 PDF 或受保护文件。"
   },
   "section": {
     "selectFiles": "选择数据原始文件",
