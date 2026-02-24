@@ -21,6 +21,8 @@ interface AppConfigResponse {
   default_export_root: string;
   ollama_installed: boolean;
   hf_source: string;
+  ollama_bin_path: string;
+  ollama_bin_custom: boolean;
 }
 
 interface OllamaPathInfo {
@@ -628,6 +630,47 @@ export function SettingsPage() {
                   )}
                 </div>
               )}
+            </div>
+            {/* Ollama Binary Path */}
+            <div className="px-4 py-3 space-y-1 border-t border-border">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">{t("storage.ollamaBinPath")}</span>
+                <div className="flex items-center gap-2">
+                  {config?.ollama_bin_custom && (
+                    <button onClick={async () => { await invoke("set_ollama_bin_path", { path: null }); loadConfig(); }} className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground">
+                      <RotateCcw size={10} />
+                      {t("storage.resetDefault")}
+                    </button>
+                  )}
+                  <button onClick={async () => {
+                    const selected = await dialogOpen({ directory: false, multiple: false, title: t("storage.ollamaBinBrowse") });
+                    if (selected && typeof selected === "string") {
+                      await invoke("set_ollama_bin_path", { path: selected });
+                      loadConfig();
+                    }
+                  }} className="text-xs text-primary hover:underline">
+                    {t("storage.browse")}
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="truncate text-xs font-mono text-muted-foreground/70">{config?.ollama_bin_path || "..."}</span>
+                {config && (
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${
+                    config.ollama_bin_path === "ollama"
+                      ? "bg-destructive/15 text-destructive"
+                      : config.ollama_bin_custom
+                        ? "bg-tag-trained/15 text-tag-trained"
+                        : "bg-muted text-muted-foreground"
+                  }`}>
+                    {config.ollama_bin_path === "ollama"
+                      ? t("storage.ollamaBinNotFound")
+                      : config.ollama_bin_custom
+                        ? t("storage.custom")
+                        : t("storage.ollamaBinDetected")}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

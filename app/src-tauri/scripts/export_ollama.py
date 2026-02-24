@@ -30,6 +30,29 @@ from i18n import t, init_i18n, add_lang_arg
 # Ollama-compatible safetensors dtypes (from reader_safetensors.go)
 OLLAMA_OK_DTYPES = {"F32", "F16", "BF16", "U8"}
 
+# Resolved ollama binary path (set in main before _run)
+_OLLAMA_BIN = "ollama"
+
+
+def resolve_ollama_bin(hint=""):
+    """Resolve the full path to the ollama binary.
+
+    Priority: hint from Rust (--ollama-bin) > common macOS paths > shutil.which > bare name.
+    """
+    import shutil
+    candidates = [
+        hint,
+        "/usr/local/bin/ollama",
+        "/opt/homebrew/bin/ollama",
+    ]
+    for c in candidates:
+        if c and os.path.isfile(c) and os.access(c, os.X_OK):
+            return c
+    found = shutil.which("ollama")
+    if found:
+        return found
+    return "ollama"
+
 
 def emit(event_type, **kwargs):
     payload = {"type": event_type, **kwargs}
@@ -40,7 +63,7 @@ def check_ollama():
     """Check if Ollama is installed and running."""
     try:
         result = subprocess.run(
-            ["ollama", "list"], capture_output=True, text=True, timeout=10
+            [_OLLAMA_BIN, "list"], capture_output=True, text=True, timeout=10
         )
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -314,7 +337,7 @@ def create_ollama_model(model_name, model_path, model_format, quantization="q4")
          desc=t("export.creating", name=model_name, format=fmt, quant=ollama_quant))
 
     # Remove any stale/broken model with the same name first
-    run_cli(["ollama", "rm", model_name], timeout=30)
+    run_cli([_OLLAMA_BIN, "rm", model_name], timeout=30)
 
     modelfile_content = f"FROM {model_path}\n"
     with tempfile.NamedTemporaryFile(mode="w", suffix=".Modelfile", delete=False) as f:
@@ -322,7 +345,7 @@ def create_ollama_model(model_name, model_path, model_format, quantization="q4")
         modelfile_path = f.name
 
     try:
-        cmd = ["ollama", "create", model_name, "-f", modelfile_path]
+        cmd = [_OLLAMA_BIN, "create", model_name, "-f", modelfile_path]
         if ollama_quant != "f16":
             cmd.extend(["--quantize", ollama_quant])
 
@@ -334,7 +357,7 @@ def create_ollama_model(model_name, model_path, model_format, quantization="q4")
         # If --quantize flag caused error, retry without it
         if "--quantize" in " ".join(cmd):
             emit("progress", step="ollama", desc=t("export.retry_no_quant"))
-            cmd_no_q = ["ollama", "create", model_name, "-f", modelfile_path]
+            cmd_no_q = [_OLLAMA_BIN, "create", model_name, "-f", modelfile_path]
             ok2, _, stderr2 = run_cli(cmd_no_q, timeout=600)
             if ok2:
                 return True
@@ -360,7 +383,7 @@ def verify_ollama_model_runtime(model_name):
 
     for prompt in prompts:
         ok, stdout, stderr = run_cli(
-            ["ollama", "run", "--nowordwrap", model_name, prompt], timeout=45
+            [_OLLAMA_BIN, "run", "--nowordwrap", model_name, prompt], timeout=45
         )
         text = (stdout or "").strip()
         if ok:
@@ -385,10 +408,14 @@ def main():
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--quantization", default="q4", choices=["q4", "q8", "f16"])
     parser.add_argument("--ollama-models-dir", default="")
+    parser.add_argument("--ollama-bin", default="", help="Full path to ollama binary")
     add_lang_arg(parser)
     args = parser.parse_args()
 
     init_i18n(args.lang)
+
+    global _OLLAMA_BIN
+    _OLLAMA_BIN = resolve_ollama_bin(args.ollama_bin)
 
     try:
         _run(args)

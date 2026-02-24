@@ -312,6 +312,10 @@ pub async fn export_to_ollama(
     let python_bin = executor.python_bin().clone();
     let quant = quantization.unwrap_or_else(|| "q4".to_string());
 
+    // Resolve ollama binary path so the Python script doesn't rely on PATH
+    let app_config = load_config();
+    let ollama_bin_str = crate::commands::config::resolve_ollama_bin_path(&app_config);
+
     let (ollama_models_dir, path_fallback_info) = resolve_ollama_models_dir_for_export();
     if let Some((configured, fallback)) = path_fallback_info {
         let _ = app.emit("export:path_warning", serde_json::json!({
@@ -348,6 +352,7 @@ pub async fn export_to_ollama(
                 "--output-dir", &output_dir.to_string_lossy(),
                 "--quantization", &quant,
                 "--ollama-models-dir", &ollama_models_dir_str,
+                "--ollama-bin", &ollama_bin_str,
                 "--lang", &lang.unwrap_or_else(|| "en".to_string()),
             ])
             .env("PYTHONUNBUFFERED", "1")

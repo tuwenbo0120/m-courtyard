@@ -3,7 +3,7 @@ mod db;
 mod fs;
 mod python;
 
-use commands::config::{get_app_config, set_model_source_path, set_export_path, set_hf_source};
+use commands::config::{get_app_config, set_model_source_path, set_export_path, set_hf_source, set_ollama_bin_path};
 use commands::environment::{check_environment, setup_environment, install_uv, check_ollama_status, list_ollama_models, get_ollama_path_info, fix_ollama_models_path, reset_ollama_models_path};
 use commands::project::{create_project, delete_project, list_projects};
 use commands::training::{start_training, stop_training, open_project_folder, list_adapters, delete_adapter, open_adapter_folder, scan_local_models, open_model_cache, validate_model_path};
@@ -68,6 +68,7 @@ pub fn run() {
             set_model_source_path,
             set_export_path,
             set_hf_source,
+            set_ollama_bin_path,
             send_notification,
             scan_storage_usage,
             cleanup_project_cache,

@@ -11,6 +11,8 @@ pub struct AppConfig {
     /// Model download source: "huggingface" (default), "hf-mirror", "modelscope"
     #[serde(default = "default_hf_source")]
     pub hf_source: String,
+    /// Custom path to the ollama binary (overrides auto-detection)
+    pub ollama_bin: Option<String>,
 }
 
 fn default_hf_source() -> String {
@@ -87,6 +89,8 @@ pub struct AppConfigResponse {
     pub default_export_root: String,
     pub ollama_installed: bool,
     pub hf_source: String,
+    pub ollama_bin_path: String,
+    pub ollama_bin_custom: bool,
 }
 
 #[tauri::command]
@@ -99,6 +103,9 @@ pub fn get_app_config() -> Result<AppConfigResponse, String> {
         .parent()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| "./projects".to_string());
+    let ollama_bin_custom = config.ollama_bin.is_some();
+    let ollama_bin_path = resolve_ollama_bin_path(&config);
+
     Ok(AppConfigResponse {
         huggingface: resolved.huggingface.to_string_lossy().to_string(),
         modelscope: resolved.modelscope.to_string_lossy().to_string(),
@@ -110,6 +117,8 @@ pub fn get_app_config() -> Result<AppConfigResponse, String> {
         default_export_root,
         ollama_installed,
         hf_source: config.hf_source,
+        ollama_bin_path,
+        ollama_bin_custom,
     })
 }
 
@@ -140,6 +149,26 @@ pub fn set_hf_source(source: String) -> Result<(), String> {
     }
     let mut config = load_config();
     config.hf_source = source;
+    save_config(&config)
+}
+
+/// Resolve the ollama binary path: config override > auto-detect > bare name.
+pub fn resolve_ollama_bin_path(config: &AppConfig) -> String {
+    if let Some(ref custom) = config.ollama_bin {
+        let p = std::path::Path::new(custom);
+        if p.exists() {
+            return custom.clone();
+        }
+    }
+    PythonExecutor::find_ollama()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| "ollama".to_string())
+}
+
+#[tauri::command]
+pub fn set_ollama_bin_path(path: Option<String>) -> Result<(), String> {
+    let mut config = load_config();
+    config.ollama_bin = path;
     save_config(&config)
 }
 
