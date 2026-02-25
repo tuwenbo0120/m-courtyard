@@ -67,6 +67,8 @@
   "export.retry_no_quant": "Retrying without --quantize...",
   "export.create_fail": "Ollama create failed:\n{error}",
   "export.create_fail_unknown": "Ollama create failed",
+  "export.arch_detected": "Model architecture: {arch}",
+  "export.ollama_error_unsupported_arch": "Your current Ollama version does not support this model's architecture ('{arch}'). Please upgrade Ollama to the latest version (https://ollama.com/download) and retry. If the issue persists after upgrading, Ollama may not yet officially support this architecture — this is an Ollama limitation, not a M-Courtyard issue.",
   "export.loading_mlx": "Loading model + adapter via MLX API...",
   "export.fusing_lora": "Fusing LoRA layers...",
   "export.fused_count": "Fused {count} LoRA layers",

@@ -67,6 +67,8 @@
   "export.retry_no_quant": "不使用 --quantize 重试...",
   "export.create_fail": "Ollama 创建失败:\n{error}",
   "export.create_fail_unknown": "Ollama 创建失败",
+  "export.arch_detected": "模型架构: {arch}",
+  "export.ollama_error_unsupported_arch": "当前 Ollama 版本不支持该模型架构（'{arch}'）。请升级 Ollama 到最新版本（https://ollama.com/download）后重试。若升级后仍然失败，说明 Ollama 官方尚未支持该架构，这是 Ollama 本身的限制，并非 M-Courtyard 的问题。",
   "export.loading_mlx": "通过 MLX API 加载模型+适配器...",
   "export.fusing_lora": "正在合并 LoRA 层...",
   "export.fused_count": "已合并 {count} 个 LoRA 层",

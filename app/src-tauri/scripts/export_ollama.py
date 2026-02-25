@@ -20,6 +20,7 @@ import glob
 import json
 import os
 import shutil
+import re
 import struct
 import subprocess
 import sys
@@ -68,6 +69,37 @@ def check_ollama():
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
+
+
+def _strip_ansi(text):
+    """Strip ANSI escape codes and terminal control sequences."""
+    return re.sub(r'(\x9B|\x1B\[)[0-9;?]*[ -/]*[@-~]|\x1B[^\[\]]*[\\\]]?', '', text or '')
+
+
+def _read_model_arch(model_dir):
+    """Read the primary model architecture from config.json, or None."""
+    config_path = os.path.join(model_dir, "config.json")
+    if not os.path.isfile(config_path):
+        return None
+    try:
+        with open(config_path) as f:
+            cfg = json.load(f)
+        archs = cfg.get("architectures", [])
+        return archs[0] if archs else None
+    except Exception:
+        return None
+
+
+def _interpret_ollama_stderr(stderr):
+    """Translate raw ollama create stderr into a user-friendly message."""
+    clean = _strip_ansi(stderr or '').strip()
+    m = re.search(r'unsupported architecture\s*["\']?([\w]+)["\']?', clean, re.IGNORECASE)
+    if m:
+        return t("export.ollama_error_unsupported_arch", arch=m.group(1))
+    error_lines = [l.strip() for l in clean.splitlines() if re.match(r'(?i)^error:', l.strip())]
+    if error_lines:
+        return error_lines[-1]
+    return clean[-400:] if clean else ''
 
 
 def resolve_model_path(model_id):
@@ -436,6 +468,10 @@ def _run(args):
         sys.exit(1)
     emit("progress", step="resolve", desc=f"Model: {resolved}")
 
+    arch = _read_model_arch(resolved)
+    if arch:
+        emit("progress", step="resolve", desc=t("export.arch_detected", arch=arch))
+
     if not os.path.isdir(args.adapter_path):
         emit("error", message=t("export.adapter_not_found", path=args.adapter_path))
         sys.exit(1)
@@ -535,8 +571,9 @@ def _run(args):
              manifest_dir=manifest_dir)
     elif isinstance(result, tuple):
         _, stderr = result
+        friendly = _interpret_ollama_stderr(stderr)
         emit("error",
-             message=t("export.create_fail", error=(stderr or '')[-600:] or 'Unknown error'))
+             message=t("export.create_fail", error=friendly or (stderr or '')[-400:] or 'Unknown error'))
         sys.exit(1)
     else:
         emit("error", message=t("export.create_fail_unknown"))
