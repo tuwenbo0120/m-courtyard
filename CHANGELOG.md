@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Comprehensive UI/UX polish release — 12 feature improvements and 19 bug fixes across all four workflow pages. Focus areas: global Tooltip system, UI consistency, export path correctness, and DataPrep layout overhaul.
 
 ### Added
+- **Online Models Update (FEAT-013)**: Upgraded default online model lists to the latest series and locally deployable versions:
+  - Qwen updated to Qwen 3.5 series (35B/27B/122B) across HuggingFace and Ollama.
+  - GLM updated to 4.7-Flash-4/8bit (HuggingFace) and 4.7-Flash (Ollama), removing the un-deployable 400GB GLM-5-4bit.
+  - DeepSeek added R1-0528 (8B) to the top of the list for both platforms.
+  - Updated "More Models" external links to point directly to the latest series pages.
+  - Fixed syntax bug in `llama4:scout` entry.
 - **Global Hover Tooltip System (FEAT-001 → FEAT-012)**: Deployed a unified Tooltip architecture across the entire application:
   - DataPrep: 1.1/1.2/1.3 section headers, Data Preview tab, Smart Segmentation tab, generated dataset titles, segmentation strategy cards — all support full-area hover tooltips with bilingual i18n (FEAT-005/010)
   - Training: 2.1/2.2/2.3 section headers, 3 progress metric cards (ETA/Health/Trend), 4 summary metric cards (Duration/TrainLoss/ValLoss/Improvement) — all upgraded to full-area hover tooltips; removed legacy static hint text from 2.3 (FEAT-012)
