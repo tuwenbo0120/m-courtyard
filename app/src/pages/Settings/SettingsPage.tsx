@@ -68,6 +68,7 @@ export function SettingsPage() {
   const [cacheScanning, setCacheScanning] = useState(false);
   const [cacheCleaning, setCacheCleaning] = useState(false);
   const [cacheMsg, setCacheMsg] = useState<{ type: "success" | "warning"; text: string } | null>(null);
+  const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
   const [appVersion, setAppVersion] = useState<string>("...");
 
   const loadConfig = useCallback(async () => {
@@ -194,11 +195,16 @@ export function SettingsPage() {
     setCacheScanning(false);
   }, []);
 
-  const handleCleanup = async () => {
+  const handleCleanupClick = () => {
     if (cleanupBlockedByTask) {
       setCacheMsg({ type: "warning", text: t("storage.cleanupBlockedByTask") });
       return;
     }
+    setShowCleanupConfirm(true);
+  };
+
+  const handleCleanupConfirm = async () => {
+    setShowCleanupConfirm(false);
     setCacheCleaning(true);
     setCacheMsg(null);
     try {
@@ -825,14 +831,35 @@ export function SettingsPage() {
                   )}
                 </div>
 
-                <button
-                  onClick={handleCleanup}
-                  disabled={cacheCleaning || cleanupBlockedByTask}
-                  className="flex w-full items-center justify-center gap-2 rounded-md bg-warning/15 border border-warning/30 px-4 py-2.5 text-sm font-medium text-warning transition-colors hover:bg-warning/25 disabled:opacity-50"
-                >
-                  <Trash2 size={16} />
-                  {cacheCleaning ? t("storage.cleaning") : t("storage.cleanupButton")}
-                </button>
+                {showCleanupConfirm ? (
+                  <div className="rounded-lg border border-warning/40 bg-warning/10 p-4 space-y-3">
+                    <p className="text-sm font-medium text-foreground">{t("storage.cleanupConfirmTitle")}</p>
+                    <p className="text-xs text-muted-foreground">{t("storage.cleanupConfirmDesc")}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleCleanupConfirm}
+                        className="flex-1 rounded-md bg-warning px-4 py-2 text-sm font-medium text-warning-foreground transition-colors hover:bg-warning/90"
+                      >
+                        {t("storage.cleanupConfirmYes")}
+                      </button>
+                      <button
+                        onClick={() => setShowCleanupConfirm(false)}
+                        className="flex-1 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
+                      >
+                        {t("storage.cleanupConfirmCancel")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleCleanupClick}
+                    disabled={cacheCleaning || cleanupBlockedByTask}
+                    className="flex w-full items-center justify-center gap-2 rounded-md bg-warning/15 border border-warning/30 px-4 py-2.5 text-sm font-medium text-warning transition-colors hover:bg-warning/25 disabled:opacity-50"
+                  >
+                    <Trash2 size={16} />
+                    {cacheCleaning ? t("storage.cleaning") : t("storage.cleanupButton")}
+                  </button>
+                )}
                 {cleanupBlockedByTask && (
                   <p className="text-xs text-warning">{t("storage.cleanupBlockedByTask")}</p>
                 )}

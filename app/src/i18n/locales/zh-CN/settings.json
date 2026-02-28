@@ -122,6 +122,10 @@
     "noCache": "未发现可清理的缓存。",
     "cleanupDone": "已释放 {{size}}。清理了 {{exportCount}} 个导出中间文件、{{adapterCount}} 个空适配器。",
     "cleanupError": "清理失败：{{error}}",
-    "cleanupBlockedByTask": "训练、数据集生成或导出任务进行中，暂不可执行一键清理。"
+    "cleanupBlockedByTask": "训练、数据集生成或导出任务进行中，暂不可执行一键清理。",
+    "cleanupConfirmTitle": "确认清理缓存",
+    "cleanupConfirmDesc": "此操作将永久删除导出中间文件、训练检查点及临时文件，不会影响您的项目和已导出的模型。",
+    "cleanupConfirmYes": "确认清理",
+    "cleanupConfirmCancel": "取消"
   }
 }

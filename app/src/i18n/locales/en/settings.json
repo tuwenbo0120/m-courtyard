@@ -122,6 +122,10 @@
     "noCache": "No cleanable cache found.",
     "cleanupDone": "Freed {{size}}. Removed {{exportCount}} export intermediates, {{adapterCount}} empty adapters.",
     "cleanupError": "Cleanup failed: {{error}}",
-    "cleanupBlockedByTask": "Cleanup is temporarily unavailable while training, dataset generation, or export is running."
+    "cleanupBlockedByTask": "Cleanup is temporarily unavailable while training, dataset generation, or export is running.",
+    "cleanupConfirmTitle": "Confirm Cache Cleanup",
+    "cleanupConfirmDesc": "This will permanently delete export intermediates, training checkpoints, and temporary files. Your projects and exported models will not be affected.",
+    "cleanupConfirmYes": "Clean Up",
+    "cleanupConfirmCancel": "Cancel"
   }
 }
