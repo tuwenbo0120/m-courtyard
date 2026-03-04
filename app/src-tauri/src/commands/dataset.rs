@@ -1070,3 +1070,107 @@ fn find_latest_retryable_version(dataset_root: &std::path::Path) -> Option<Strin
     dirs.first()
         .map(|e| e.file_name().to_string_lossy().to_string())
 }
+
+/// Validate that a file is parseable JSONL with a recognised mlx-lm format.
+/// Checks up to 5 non-empty lines. Returns a user-readable error on failure.
+fn validate_import_jsonl(path: &std::path::Path, label: &str) -> Result<(), String> {
+    use std::io::{BufRead, BufReader};
+    let file = std::fs::File::open(path)
+        .map_err(|e| format!("Cannot open {}: {}", label, e))?;
+    let reader = BufReader::new(file);
+    let mut checked = 0usize;
+    for (idx, line) in reader.lines().enumerate() {
+        if checked >= 5 { break; }
+        let line = line.map_err(|e| format!("Error reading {} line {}: {}", label, idx + 1, e))?;
+        let trimmed = line.trim();
+        if trimmed.is_empty() { continue; }
+        let obj: serde_json::Value = serde_json::from_str(trimmed).map_err(|_| {
+            let preview = &trimmed[..trimmed.len().min(120)];
+            format!("{} line {} is not valid JSON.\nContent: {}", label, idx + 1, preview)
+        })?;
+        let has_prompt_completion =
+            obj.get("prompt").is_some() && obj.get("completion").is_some();
+        let has_messages = obj.get("messages").map(|v| v.is_array()).unwrap_or(false);
+        if !has_prompt_completion && !has_messages {
+            return Err(format!(
+                "{} line {} does not match a supported format.\n\
+                Expected either:\n  \
+                • {{\"prompt\": \"...\", \"completion\": \"...\"}}\n  \
+                • {{\"messages\": [{{\"role\": \"user\", \"content\": \"...\"}}, ...]}}",
+                label, idx + 1
+            ));
+        }
+        checked += 1;
+    }
+    if checked == 0 {
+        return Err(format!("{} is empty — no valid JSON lines found.", label));
+    }
+    Ok(())
+}
+
+/// Import an externally prepared dataset folder.
+/// The folder must contain `train.jsonl` (required) and may contain `valid.jsonl` (optional).
+/// Both files are validated for mlx-lm format before copying.
+#[tauri::command]
+pub fn import_custom_dataset(
+    project_id: String,
+    folder_path: String,
+) -> Result<String, String> {
+    let dir_manager = ProjectDirManager::new();
+    let dataset_root = dir_manager.project_path(&project_id).join("dataset");
+    let src_folder = std::path::Path::new(&folder_path);
+    let train_src = src_folder.join("train.jsonl");
+    let valid_src = src_folder.join("valid.jsonl");
+
+    // train.jsonl is mandatory
+    if !train_src.exists() {
+        return Err(
+            "train.jsonl not found in the selected folder.\n\
+            Please ensure the folder contains a file named exactly 'train.jsonl'.".to_string(),
+        );
+    }
+
+    // Validate format before touching the project directory
+    validate_import_jsonl(&train_src, "train.jsonl")?;
+    if valid_src.exists() {
+        validate_import_jsonl(&valid_src, "valid.jsonl")?;
+    }
+
+    // Create timestamped version directory
+    let _ = std::fs::create_dir_all(&dataset_root);
+    let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
+    let output_dir = dataset_root.join(&timestamp);
+    std::fs::create_dir_all(&output_dir)
+        .map_err(|e| format!("Failed to create dataset directory: {}", e))?;
+
+    // Copy files
+    std::fs::copy(&train_src, output_dir.join("train.jsonl"))
+        .map_err(|e| { let _ = std::fs::remove_dir_all(&output_dir); format!("Failed to copy train.jsonl: {}", e) })?;
+    if valid_src.exists() {
+        std::fs::copy(&valid_src, output_dir.join("valid.jsonl"))
+            .map_err(|e| { let _ = std::fs::remove_dir_all(&output_dir); format!("Failed to copy valid.jsonl: {}", e) })?;
+    }
+
+    // Sanity: train must have at least 1 sample after copy
+    let train_count = count_jsonl_lines(&output_dir.join("train.jsonl"));
+    if train_count == 0 {
+        let _ = std::fs::remove_dir_all(&output_dir);
+        return Err("train.jsonl is empty — please provide at least 1 training sample.".to_string());
+    }
+
+    // Write meta.json so the dataset is recognised correctly in the UI
+    let meta = serde_json::json!({
+        "raw_files": [],
+        "mode": "imported",
+        "source": "imported",
+        "model": "",
+        "quality_scoring_enabled": false,
+        "imported_from": folder_path,
+    });
+    std::fs::write(
+        output_dir.join("meta.json"),
+        serde_json::to_string_pretty(&meta).unwrap_or_default(),
+    ).map_err(|e| format!("Failed to write meta.json: {}", e))?;
+
+    Ok(timestamp)
+}

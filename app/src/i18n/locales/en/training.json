@@ -52,7 +52,13 @@
     "doraDesc": "Weight-Decomposed Low-Rank Adaptation. Enhanced LoRA with better performance, slightly more compute.",
     "full": "Full",
     "fullDesc": "Full parameter fine-tuning. Trains all model weights. Requires significantly more memory.",
-    "hint": "Select a method after choosing model and dataset."
+    "hint": "Select a method after choosing model and dataset.",
+    "advancedTitle": "Advanced",
+    "loraScaleStrategy": "LoRA Scaling Strategy",
+    "loraScaleStrategyHint": "Controls how LoRA adapter outputs are scaled before being added to the base model weights. Standard uses alpha/r; rsLoRA uses alpha/√r — which keeps the effective learning signal stable at higher ranks, improving training consistency when rank > 32.",
+    "scaleStandard": "Standard (alpha / r)",
+    "scaleRslora": "rsLoRA (alpha / √r)",
+    "scaleRsloraHint": "Recommended for rank ≥ 32. Stabilises training at high rank — results may be more consistent but training time is slightly higher."
   },
   "presets": {
     "title": "Quick Presets",
@@ -100,7 +106,9 @@
     "genMethod": "Method",
     "methodOllama": "AI Generation ({{model}})",
     "methodBuiltin": "Built-in Rules",
+    "methodImported": "Imported",
     "modeQa": "Q&A",
+    "modeImported": "Imported",
     "modeStyle": "Style Imitation",
     "modeChat": "Dialogue",
     "modeInstruct": "Instruction",
@@ -203,6 +211,22 @@
       "copyMd": "Copy Report Markdown",
       "share": "System Share"
     }
+  },
+  "importDataset": {
+    "btn": "Import Dataset",
+    "title": "Import Custom Dataset",
+    "desc": "Import your own pre-formatted JSONL files directly into the training stage, bypassing Data Preparation.",
+    "reqTitle": "Folder structure",
+    "trainRequired": "Required — training samples (one JSON per line)",
+    "validOptional": "Optional — validation samples, same format. Recommended for tracking training quality.",
+    "formatTitle": "Supported line formats",
+    "format1Label": "Completion format",
+    "format2Label": "Chat format",
+    "selectFolder": "Select Folder",
+    "importing": "Importing…",
+    "success": "Dataset imported successfully",
+    "errorNoTrain": "train.jsonl not found in the selected folder.",
+    "cancel": "Cancel"
   },
   "validation": {
     "needModel": "Please select a training model first",

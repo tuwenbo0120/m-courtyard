@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.9] - 2026-03-04
+
+### Added
+- **Custom JSONL Dataset Import (D-11)**: Power users can now import their own pre-formatted JSONL datasets directly from the Training page (step 2.2), bypassing the Data Preparation stage entirely.
+  - New "Import Dataset" button in the 2.2 section header — works alongside existing dataset list.
+  - Click opens a format-guide dialog explaining folder structure (`train.jsonl` required, `valid.jsonl` optional) and supported line formats (Completion `{prompt, completion}` / Chat `{messages: [...]}`).
+  - Backend validates format (first 5 lines, field completeness) before copying; rejects malformed files with a specific error message (e.g. "missing prompt field", "not valid JSON").
+  - Imported datasets appear in the dataset list with "Imported" source/type label in the expanded detail view.
+  - Bilingual i18n (en / zh-CN).
+- **rsLoRA Scaling Strategy (T-3 / 集群八)**: Advanced LoRA training option for power users who train at high rank.
+  - New collapsible "Advanced" section in step 2.3 (Training Method), visible only when LoRA or DoRA is selected.
+  - Two options: **Standard** (alpha / r, default) and **rsLoRA** (alpha / √r) — keeps the effective learning signal stable at rank ≥ 32.
+  - When rsLoRA is active, the collapsed header shows a blue "rsLoRA" badge as a visual reminder.
+  - Backend injects `use_rslora: true` into `lora_config.yaml` passed to `mlx_lm lora`.
+  - Bilingual i18n (en / zh-CN).
+
 ## [0.4.8] - 2026-02-28
 
 ### Fixed / 修复
@@ -272,6 +288,10 @@ Delivers the **Batch Processing** cluster (PRD D-1 · D-2 · H-3): multi-file dr
 - **GitHub Actions CI**: Automated .dmg build and release on tag push
 - **Discord Integration**: Automated release notifications via webhook
 
+[0.4.9]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.9
+[0.4.8]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.8
+[0.4.7]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.7
+[0.4.6]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.6
 [0.4.5]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.5
 [0.4.4]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.4
 [0.4.3]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.3

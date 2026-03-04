@@ -8,7 +8,7 @@ use commands::environment::{check_environment, setup_environment, install_uv, ch
 use commands::project::{create_project, delete_project, list_projects};
 use commands::training::{start_training, stop_training, open_project_folder, list_adapters, delete_adapter, open_adapter_folder, scan_local_models, open_model_cache, validate_model_path};
 use commands::files::{import_files, list_project_files, read_file_content, delete_file, clear_project_data};
-use commands::dataset::{start_cleaning, generate_dataset, get_dataset_preview, stop_generation, list_dataset_versions, open_dataset_folder, sample_raw_files, preview_clean_segments};
+use commands::dataset::{start_cleaning, generate_dataset, get_dataset_preview, stop_generation, list_dataset_versions, open_dataset_folder, sample_raw_files, preview_clean_segments, import_custom_dataset};
 use commands::inference::start_inference;
 use commands::export::{export_to_ollama, export_to_gguf, export_to_mlx, verify_export_model, start_mlx_server, stop_mlx_server, get_mlx_server_status, MlxServerState};
 use commands::storage::{scan_storage_usage, cleanup_project_cache};
@@ -55,6 +55,7 @@ pub fn run() {
             open_dataset_folder,
             sample_raw_files,
             preview_clean_segments,
+            import_custom_dataset,
             open_project_folder,
             list_adapters,
             delete_adapter,

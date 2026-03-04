@@ -53,6 +53,7 @@ pub async fn start_training(
     let lora_rank = training_params["lora_rank"].as_u64().unwrap_or(8);
     let lora_scale = training_params["lora_scale"].as_f64().unwrap_or(20.0);
     let lora_dropout = training_params["lora_dropout"].as_f64().unwrap_or(0.0);
+    let use_rslora = training_params["lora_scale_strategy"].as_str().unwrap_or("standard") == "rslora";
     let learning_rate = training_params["learning_rate"].as_f64().unwrap_or(1e-5);
     let max_seq_length = training_params["max_seq_length"].as_u64().unwrap_or(2048);
     let grad_checkpoint = training_params["grad_checkpoint"].as_bool().unwrap_or(false);
@@ -65,11 +66,20 @@ pub async fn start_training(
     let seed = training_params["seed"].as_u64().unwrap_or(0);
 
     // Verify dataset exists
-    if !data_dir.join("train.jsonl").exists() {
+    let train_path = data_dir.join("train.jsonl");
+    let valid_path = data_dir.join("valid.jsonl");
+    if !train_path.exists() {
         return Err("Dataset train.jsonl not found. Please generate a dataset first.".into());
     }
-    if !data_dir.join("valid.jsonl").exists() {
-        return Err("Dataset valid.jsonl not found. Please generate a dataset first.".into());
+    if !valid_path.exists() {
+        // D-11 allows importing dataset folders without valid.jsonl.
+        // For mlx_lm.lora compatibility, create a fallback valid split from train.
+        std::fs::copy(&train_path, &valid_path).map_err(|e| {
+            format!(
+                "Dataset valid.jsonl not found, and failed to auto-generate from train.jsonl: {}",
+                e
+            )
+        })?;
     }
 
     // Auto-clamp batch_size so it never exceeds the smallest dataset split
@@ -78,8 +88,8 @@ pub async fn start_training(
             .map(|s| s.lines().filter(|l| !l.trim().is_empty()).count())
             .unwrap_or(0)
     };
-    let train_count = count_lines(&data_dir.join("train.jsonl"));
-    let valid_count = count_lines(&data_dir.join("valid.jsonl"));
+    let train_count = count_lines(&train_path);
+    let valid_count = count_lines(&valid_path);
     let min_dataset = std::cmp::min(train_count, valid_count) as u64;
     let batch_size = if min_dataset > 0 && batch_size > min_dataset {
         min_dataset
@@ -100,6 +110,8 @@ pub async fn start_training(
         "lora_layers": lora_layers,
         "lora_rank": lora_rank,
         "lora_scale": lora_scale,
+        "lora_scale_strategy": if use_rslora { "rslora" } else { "standard" },
+        "use_rslora": use_rslora,
         "lora_dropout": lora_dropout,
         "learning_rate": learning_rate,
         "max_seq_length": max_seq_length,
@@ -123,13 +135,18 @@ pub async fn start_training(
         // Full fine-tuning does not use lora_parameters
         String::new()
     } else {
-        format!(
+        let base = format!(
             "lora_parameters:\n  rank: {}\n  alpha: {}\n  dropout: {}\n  scale: {}\n",
             lora_rank,
             lora_rank * 2,
             lora_dropout,
             lora_scale,
-        )
+        );
+        if use_rslora {
+            format!("{}  use_rslora: true\n", base)
+        } else {
+            base
+        }
     };
     std::fs::write(&config_path, &config_content)
         .map_err(|e| format!("Failed to write lora config: {}", e))?;

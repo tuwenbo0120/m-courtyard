@@ -133,6 +133,14 @@ pnpm tauri build
 
 如果 M-Courtyard 帮助你构建了本地 AI，请考虑在 GitHub 上给它点个 ⭐！
 
+## 支持项目
+
+如果 M-Courtyard 为你节省了时间，欢迎请我喝杯咖啡 ☕ 你的支持是持续开发的最大动力！
+
+<a href='https://ko-fi.com/M4M1IVCOTA' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+
+国内用户也可通过 [爱发电](https://afdian.com/a/mcourtyard) 支持（支持微信支付 / 支付宝）。
+
 ## 许可证
 
 M-Courtyard 是一款基于 [AGPL-3.0 许可证](LICENSE) 的开源软件。

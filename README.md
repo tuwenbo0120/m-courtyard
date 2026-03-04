@@ -133,6 +133,14 @@ Join our community to share your fine-tuned models, get help, or suggest feature
 
 If M-Courtyard helps you build your local AI, please consider giving it a star on GitHub!
 
+## Support
+
+If M-Courtyard saves you time, consider buying me a coffee — it helps keep the project alive! ☕
+
+<a href='https://ko-fi.com/M4M1IVCOTA' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+
+Chinese supporters can also use [爱发电](https://afdian.com/a/mcourtyard) (WeChat Pay / Alipay supported).
+
 ## License
 
 M-Courtyard is open-source software licensed under the [AGPL-3.0 License](LICENSE).

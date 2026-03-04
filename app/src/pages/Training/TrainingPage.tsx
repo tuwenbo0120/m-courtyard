@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
+import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { Play, Square, Gauge, Layers, Target, Gem, BarChart3, FileText, FolderOpen, Copy, Check, ArrowRight, Trash2, ChevronDown, ChevronRight, ChevronLeft, X, CheckCircle2, Circle, Trophy, Upload, Clock, TrendingDown, AlertTriangle, ListPlus, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
@@ -330,6 +331,10 @@ export function TrainingPage() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [nowTs, setNowTs] = useState(Date.now());
   const [lastIterChangeAt, setLastIterChangeAt] = useState<number | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importingDataset, setImportingDataset] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [methodAdvancedOpen, setMethodAdvancedOpen] = useState(false);
 
   // Model-level validation (dataset selection is validated separately before start)
   const canStartTraining = !!(params.model && (modelValid !== false));
@@ -395,6 +400,29 @@ export function TrainingPage() {
     } catch {
       setDatasetVersions([]);
       setSelectedVersion("");
+    }
+  };
+
+  const handleImportDataset = async () => {
+    if (!currentProject) return;
+    setImportError(null);
+    setImportingDataset(true);
+    try {
+      const selected = await dialogOpen({ directory: true });
+      if (!selected) { setImportingDataset(false); return; }
+      const folderPath = typeof selected === "string" ? selected : (selected as string[])[0];
+      const version = await invoke<string>("import_custom_dataset", {
+        projectId: currentProject.id,
+        folderPath,
+      });
+      await loadDatasetVersions();
+      setSelectedVersion(version);
+      setShowImportDialog(false);
+      setImportError(null);
+    } catch (e: unknown) {
+      setImportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImportingDataset(false);
     }
   };
 
@@ -953,15 +981,25 @@ export function TrainingPage() {
             </TooltipTrigger>
             <TooltipContent className="max-w-[450px]">{t("section.selectDatasetHint")}</TooltipContent>
           </Tooltip>
-          {selectedDataset && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={(e) => { e.stopPropagation(); invoke("open_dataset_folder", { projectId: currentProject.id }); }}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              onClick={(e) => { e.stopPropagation(); setImportError(null); setShowImportDialog(true); }}
+              disabled={status === "running"}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40"
             >
-              <FolderOpen size={12} />
-              {tc("openFolder")}
+              <Upload size={12} />
+              {t("importDataset.btn")}
             </button>
-          )}
+            {selectedDataset && (
+              <button
+                onClick={(e) => { e.stopPropagation(); invoke("open_dataset_folder", { projectId: currentProject.id }); }}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <FolderOpen size={12} />
+                {tc("openFolder")}
+              </button>
+            )}
+          </div>
         </button>
         {step2Open && (
           <div className="border-t border-border p-4 space-y-2">
@@ -980,6 +1018,7 @@ export function TrainingPage() {
                     style: t("dataset.modeStyle"),
                     chat: t("dataset.modeChat"),
                     instruct: t("dataset.modeInstruct"),
+                    imported: t("dataset.modeImported"),
                   };
                   return (
                     <div
@@ -1040,7 +1079,9 @@ export function TrainingPage() {
                               <span className="text-foreground">
                                 {v.source === "ollama"
                                   ? t("dataset.methodOllama", { model: v.model || "?" })
-                                  : t("dataset.methodBuiltin")}
+                                  : v.source === "imported"
+                                    ? t("dataset.methodImported")
+                                    : t("dataset.methodBuiltin")}
                               </span>
                             </div>
                           )}
@@ -1131,6 +1172,57 @@ export function TrainingPage() {
                 </button>
               ))}
             </div>
+
+            {/* rsLoRA Advanced Options — only visible for LoRA / DoRA */}
+            {isLoraLike && (
+              <div className="rounded-md border border-border/60">
+                <button
+                  onClick={() => setMethodAdvancedOpen(!methodAdvancedOpen)}
+                  disabled={status === "running"}
+                  className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+                >
+                  {methodAdvancedOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  {t("method.advancedTitle")}
+                  {params.lora_scale_strategy === "rslora" && (
+                    <span className="ml-1 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">rsLoRA</span>
+                  )}
+                </button>
+                {methodAdvancedOpen && (
+                  <div className="border-t border-border/60 px-3 py-3 space-y-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground cursor-default">
+                          {t("method.loraScaleStrategy")}
+                          <Info size={11} className="text-muted-foreground/50" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[380px]">{t("method.loraScaleStrategyHint")}</TooltipContent>
+                    </Tooltip>
+                    <div className="flex gap-2">
+                      {(["standard", "rslora"] as const).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => { updateParam("lora_scale_strategy", s); setParamsEdited(true); }}
+                          disabled={status === "running"}
+                          className={`flex-1 rounded-md border px-2.5 py-2 text-left text-xs transition-colors disabled:opacity-40 ${
+                            params.lora_scale_strategy === s
+                              ? "border-primary bg-primary/10 text-foreground"
+                              : "border-border text-muted-foreground hover:bg-accent"
+                          }`}
+                        >
+                          {s === "standard" ? t("method.scaleStandard") : t("method.scaleRslora")}
+                        </button>
+                      ))}
+                    </div>
+                    {params.lora_scale_strategy === "rslora" && (
+                      <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
+                        {t("method.scaleRsloraHint")}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1658,6 +1750,83 @@ export function TrainingPage() {
                   ))
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ===== Import Custom Dataset Dialog ===== */}
+      {showImportDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => { if (!importingDataset) { setShowImportDialog(false); setImportError(null); } }}
+        >
+          <div
+            className="relative w-[540px] max-w-[90vw] rounded-xl border border-border bg-card p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => { setShowImportDialog(false); setImportError(null); }}
+              disabled={importingDataset}
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground disabled:opacity-40"
+            >
+              <X size={16} />
+            </button>
+
+            <h3 className="text-base font-semibold text-foreground">{t("importDataset.title")}</h3>
+            <p className="mt-1 text-xs text-muted-foreground">{t("importDataset.desc")}</p>
+
+            {/* Folder structure */}
+            <div className="mt-4 rounded-md border border-border bg-muted/30 p-3 text-xs space-y-1.5">
+              <div className="font-medium text-foreground">{t("importDataset.reqTitle")}</div>
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 shrink-0 font-bold text-success">✓</span>
+                <span><code className="rounded bg-muted px-1 py-0.5 text-[11px]">train.jsonl</code> — {t("importDataset.trainRequired")}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 shrink-0 text-muted-foreground/60">○</span>
+                <span><code className="rounded bg-muted px-1 py-0.5 text-[11px]">valid.jsonl</code> — {t("importDataset.validOptional")}</span>
+              </div>
+            </div>
+
+            {/* Format requirements */}
+            <div className="mt-3 rounded-md border border-border bg-muted/30 p-3 text-xs space-y-2.5">
+              <div className="font-medium text-foreground">{t("importDataset.formatTitle")}</div>
+              <div className="space-y-1">
+                <div className="text-muted-foreground">{t("importDataset.format1Label")}:</div>
+                <pre className="overflow-x-auto rounded bg-muted p-2 text-[10px] text-foreground leading-relaxed">{'{"prompt": "What is M-Courtyard?", "completion": "M-Courtyard is..."}'}</pre>
+              </div>
+              <div className="space-y-1">
+                <div className="text-muted-foreground">{t("importDataset.format2Label")}:</div>
+                <pre className="overflow-x-auto rounded bg-muted p-2 text-[10px] text-foreground leading-relaxed">{'{"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}'}</pre>
+              </div>
+            </div>
+
+            {/* Error */}
+            {importError && (
+              <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive whitespace-pre-wrap break-words">
+                {importError}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => { setShowImportDialog(false); setImportError(null); }}
+                disabled={importingDataset}
+                className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent disabled:opacity-40"
+              >
+                {t("importDataset.cancel")}
+              </button>
+              <button
+                onClick={handleImportDataset}
+                disabled={importingDataset}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {importingDataset
+                  ? <><span className="inline-block h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />{t("importDataset.importing")}</>
+                  : <><Upload size={12} />{t("importDataset.selectFolder")}</>
+                }
+              </button>
             </div>
           </div>
         </div>

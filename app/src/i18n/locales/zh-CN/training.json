@@ -52,7 +52,13 @@
     "doraDesc": "权重分解低秩自适应。增强版 LoRA，效果更好，计算量略增。",
     "full": "Full",
     "fullDesc": "全参数微调。训练所有模型权重，需要大量内存。",
-    "hint": "请先选择模型和数据集，再选择训练方法。"
+    "hint": "请先选择模型和数据集，再选择训练方法。",
+    "advancedTitle": "高级选项",
+    "loraScaleStrategy": "LoRA 缩放策略",
+    "loraScaleStrategyHint": "控制 LoRA 适配器输出在叠加到基础模型权重前的缩放方式。标准模式使用 alpha/r；rsLoRA 使用 alpha/√r——在较高 rank 时保持有效学习信号稳定，rank > 32 时建议使用。",
+    "scaleStandard": "标准（alpha / r）",
+    "scaleRslora": "rsLoRA（alpha / √r）",
+    "scaleRsloraHint": "建议在 rank ≥ 32 时选用。高 rank 训练更稳定，结果可能更一致，训练时间略有增加。"
   },
   "presets": {
     "title": "快速预设",
@@ -100,7 +106,9 @@
     "genMethod": "生成方式",
     "methodOllama": "AI 生成（{{model}}）",
     "methodBuiltin": "内置规则",
+    "methodImported": "外部导入",
     "modeQa": "知识问答",
+    "modeImported": "外部导入",
     "modeStyle": "风格模仿",
     "modeChat": "对话模式",
     "modeInstruct": "通用指令",
@@ -203,6 +211,22 @@
       "copyMd": "复制报告 Markdown",
       "share": "系统分享"
     }
+  },
+  "importDataset": {
+    "btn": "导入数据集",
+    "title": "导入自定义数据集",
+    "desc": "将你已格式化好的 JSONL 文件直接导入到训练阶段，跳过数据准备流程。",
+    "reqTitle": "文件夹结构要求",
+    "trainRequired": "必须 — 训练样本，每行一个 JSON 对象",
+    "validOptional": "可选 — 验证样本，格式相同。建议提供以便监控训练质量。",
+    "formatTitle": "支持的行格式",
+    "format1Label": "Completion 格式",
+    "format2Label": "Chat 格式",
+    "selectFolder": "选择文件夹",
+    "importing": "导入中…",
+    "success": "数据集导入成功",
+    "errorNoTrain": "所选文件夹中未找到 train.jsonl。",
+    "cancel": "取消"
   },
   "validation": {
     "needModel": "请先选择训练模型",

@@ -28,6 +28,7 @@ export interface TrainingParams {
   steps_per_report: number;
   val_batches: number;
   seed: number;
+  lora_scale_strategy: "standard" | "rslora";
 }
 
 export interface TrainingJob {
@@ -66,6 +67,7 @@ export function defaultTrainingParams(): TrainingParams {
     steps_per_report: 10,
     val_batches: 25,
     seed: 0,
+    lora_scale_strategy: "standard",
   };
 }
 
