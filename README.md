@@ -18,7 +18,7 @@
 ---
 
 <div align="center">
-  <img src="screenshots/0228/training-2.gif" alt="M-Courtyard Training Showcase" width="800">
+  <img src="screenshots/training-2.gif" alt="M-Courtyard Training Showcase" width="800">
 </div>
 
 <br>
@@ -62,25 +62,25 @@ M-Courtyard is a **desktop assistant** designed to demystify LLM fine-tuning. Fo
 ### 1. Data Preparation
 Import documents, auto-clean, and generate training datasets using local LLMs.
 <div align="center">
-  <img src="screenshots/0228/data-prep-1.png" alt="Data Prep Setup" width="48%">
+  <img src="screenshots/data-prep-1.png" alt="Data Prep Setup" width="48%">
   &nbsp;
-  <img src="screenshots/0228/data-prep-2.gif" alt="Data Prep Generation" width="48%">
+  <img src="screenshots/data-prep-2.gif" alt="Data Prep Generation" width="48%">
 </div>
 
 ### 2. Model Training
 Real-time loss curves, ETA, and progress tracking powered by Apple MLX.
 <div align="center">
-  <img src="screenshots/0228/training-1.gif" alt="Training Live Loss" width="48%">
+  <img src="screenshots/training-1.gif" alt="Training Live Loss" width="48%">
   &nbsp;
-  <img src="screenshots/0228/training-3.png" alt="Training Summary" width="48%">
+  <img src="screenshots/training-3.png" alt="Training Summary" width="48%">
 </div>
 
 ### 3. Testing & Export
 Instantly chat with your fine-tuned model and export it either to Ollama or as MLX assets for LM Studio / local MLX workflows.
 <div align="center">
-  <img src="screenshots/0228/test-model.png" alt="Test Model" width="48%">
+  <img src="screenshots/test-model.png" alt="Test Model" width="48%">
   &nbsp;
-  <img src="screenshots/0228/export-2.gif" alt="Export to Ollama" width="48%">
+  <img src="screenshots/export-2.gif" alt="Export to Ollama" width="48%">
 </div>
 
 ## Requirements
