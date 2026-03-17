@@ -134,6 +134,7 @@
     "delete": "Delete",
     "sourceLabels": {
       "ollama": "Ollama",
+      "lmstudio": "LM Studio",
       "trained": "Trained Adapters"
     },
     "disabledReason": {
@@ -141,6 +142,7 @@
       "trainedNotBase": "LoRA adapter, not a base model",
       "adapterNoGen": "Adapters cannot be used for data generation",
       "ollamaOnly": "Only Ollama models are supported",
+      "lmstudioOnly": "Only LM Studio models are supported",
       "notInDaemon": "Not available in current Ollama daemon runtime path",
       "selectAdapter": "Please select a trained adapter"
     },
@@ -155,6 +157,20 @@
     "scanningModels": "Scanning local models...",
     "noModelsFound": "No downloaded models found",
     "noModelsHint": "Select a recommended model from the \"Online\" tab, or browse folder",
+    "lmstudioOnlineHint": "LM Studio models are managed through the LM Studio app.",
+    "lmstudioOnlineDesc": "Download and load models in LM Studio, then start the local server. Models will appear in the Local tab.",
+    "lmstudioStep1": "1. Download and load a model in LM Studio",
+    "lmstudioStep2": "2. Click Developer → Local Server in the left sidebar",
+    "lmstudioStep3": "3. Toggle the Status switch to Running at the top (or press ⌘R)",
+    "lmstudioOpenApp": "Open LM Studio",
+    "lmstudioCheckServer": "Check Connection",
+    "lmstudioConnectedBtn": "Connected",
+    "lmstudioNotConnectedBtn": "Not Connected",
+    "lmstudioServerRunning": "✅ Server Running",
+    "lmstudioServerStopped": "⚠️ Server Not Started",
+    "lmstudioServerModels": "{count} model(s) loaded",
+    "lmstudioChecking": "Checking...",
+    "lmstudioNotInstalled": "LM Studio not installed",
     "usableCount": "{{count}} usable",
     "notUsable": "Not usable",
     "totalCount": " / {{count}} total",

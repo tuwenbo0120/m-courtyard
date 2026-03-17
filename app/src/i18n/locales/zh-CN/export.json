@@ -115,14 +115,16 @@
     "openFolder": "在 Finder 中打开"
   },
   "mlx": {
-    "title": "导出为 MLX 模型",
-    "description": "导出为 MLX safetensors 模型，可直接由 LM Studio 加载（Mac 上性能最优），或作为本地 API 服务。",
-    "exportButton": "导出为 MLX 模型",
+    "title": "导出到 LM Studio（MLX 格式）",
+    "description": "导出为 MLX safetensors 模型，可直接在 LM Studio 中加载（Mac 原生性能最优），或作为本地 API 服务。",
+    "exportButton": "导出 MLX 模型（LM Studio）",
     "exporting": "导出中...",
     "success": "MLX 模型导出成功！",
     "successHint": "模型保存至：",
     "sizeHint": "大小：{{size}} MB",
     "openFolder": "打开文件夹",
+    "lmstudioHint": "该目录可直接在 LM Studio 中加载（MLX 格式，Mac 原生性能）。",
+    "openLmstudioFolder": "打开 LM Studio 模型目录",
     "pipeline": {
       "check": "准备",
       "resolve": "解析模型",

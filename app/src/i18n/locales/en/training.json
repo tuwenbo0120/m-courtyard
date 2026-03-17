@@ -108,6 +108,7 @@
     "genMethod": "Method",
     "methodOllama": "AI Generation ({{model}})",
     "methodBuiltin": "Built-in Rules",
+    "methodLmstudio": "AI Generation via LM Studio ({{model}})",
     "methodImported": "Imported",
     "modeQa": "Q&A",
     "modeImported": "Imported",

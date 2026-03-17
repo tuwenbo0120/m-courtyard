@@ -73,7 +73,9 @@ jobs:
             ### Requirements
             - macOS 14+ (Sonoma or later)
             - Apple Silicon (M1/M2/M3/M4)
-            - [Ollama](https://ollama.com) installed
+            - Optional: [Ollama](https://ollama.com) for Ollama-based AI generation or one-click Ollama export
+            - Optional: [LM Studio](https://lmstudio.ai) for LM Studio-based AI generation or loading exported MLX models
+            - No extra runtime needed if you use the built-in rules path
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

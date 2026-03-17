@@ -268,6 +268,7 @@ pub async fn generate_dataset(
     // Select script based on source
     let script_name = match effective_source.as_str() {
         "ollama" => "generate_dataset_ollama.py",
+        "lmstudio" => "generate_dataset_lmstudio.py",
         "builtin" => "generate_dataset_builtin.py",
         _ => "generate_dataset.py", // legacy mlx-lm fallback
     };
@@ -276,6 +277,14 @@ pub async fn generate_dataset(
         return Err(format!("Dataset generation script not found: {}", script.display()));
     }
     let supports_lang = script_supports_lang_arg(&script);
+
+    // Resolve LM Studio API URL for lmstudio source
+    let lmstudio_api_url = if effective_source == "lmstudio" {
+        let cfg = crate::commands::config::load_config();
+        cfg.lmstudio_api_url.unwrap_or_else(|| "http://localhost:1234".to_string())
+    } else {
+        String::new()
+    };
 
     let python_bin = executor.python_bin().clone();
     let should_resume = resume.unwrap_or(false);
@@ -335,6 +344,10 @@ pub async fn generate_dataset(
         if let Some(retry_input) = retry_segments_input {
             py_args.push("--input-segments".to_string());
             py_args.push(retry_input.to_string_lossy().to_string());
+        }
+        if !lmstudio_api_url.is_empty() {
+            py_args.push("--api-url".to_string());
+            py_args.push(lmstudio_api_url);
         }
         if enable_quality_scoring {
             py_args.push("--quality-scoring".to_string());

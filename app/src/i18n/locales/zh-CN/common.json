@@ -134,6 +134,7 @@
     "delete": "删除",
     "sourceLabels": {
       "ollama": "Ollama",
+      "lmstudio": "LM Studio",
       "trained": "已训练适配器"
     },
     "disabledReason": {
@@ -141,6 +142,7 @@
       "trainedNotBase": "LoRA 适配器，不是基础模型",
       "adapterNoGen": "适配器不可直接用于数据生成",
       "ollamaOnly": "仅支持 Ollama 模型",
+      "lmstudioOnly": "仅支持 LM Studio 模型",
       "notInDaemon": "当前 Ollama daemon 运行路径不可用该模型",
       "selectAdapter": "请选择已训练的适配器"
     },
@@ -154,7 +156,21 @@
     "refresh": "刷新",
     "scanningModels": "正在扫描本地模型...",
     "noModelsFound": "未发现已下载的模型",
-    "noModelsHint": "请从「在线模型」标签选择推荐模型，或使用「浏览文件夹」选择",
+    "noModelsHint": "请在“在线”标签页选择推荐模型，或打开模型文件夹",
+    "lmstudioOnlineHint": "LM Studio 模型通过 LM Studio 应用管理。",
+    "lmstudioOnlineDesc": "请在 LM Studio 中下载并加载模型，然后启动本地服务。模型将自动出现在“本地”标签页中。",
+    "lmstudioStep1": "1. 在 LM Studio 中下载并加载模型",
+    "lmstudioStep2": "2. 左侧菜单点击 Developer → Local Server",
+    "lmstudioStep3": "3. 将页面顶部 Status 开关切换为 Running（或按 ⌘R）",
+    "lmstudioOpenApp": "打开 LM Studio",
+    "lmstudioCheckServer": "检测连接",
+    "lmstudioConnectedBtn": "已连接",
+    "lmstudioNotConnectedBtn": "未连接",
+    "lmstudioServerRunning": "✅ 服务器已运行",
+    "lmstudioServerStopped": "⚠️ 服务器未启动",
+    "lmstudioServerModels": "已加载 {count} 个模型",
+    "lmstudioChecking": "检测中...",
+    "lmstudioNotInstalled": "LM Studio 未安装",
     "usableCount": "{{count}} 个可用",
     "notUsable": "不可用",
     "totalCount": " / 共 {{count}} 个",

@@ -451,6 +451,9 @@ pub fn scan_local_models() -> Result<Vec<LocalModelInfo>, String> {
         .join("manifests").join("registry.ollama.ai").join("library");
     scan_ollama_models(&ollama_lib, &ollama_dir, "ollama", &mut models);
 
+    // 4. Scan LM Studio models directory
+    scan_lmstudio_models(&resolved.lmstudio, "lmstudio", &mut models);
+
     // MLX models first, then by source, then by name
     models.sort_by(|a, b| {
         b.is_mlx.cmp(&a.is_mlx)
@@ -552,6 +555,91 @@ fn scan_ollama_models(
     }
 }
 
+/// Scan LM Studio models directory.
+/// LM Studio 2.x stores models under <root>/hub/models/{publisher}/{model}/
+/// with manifest.json + model.yaml (hub format, no direct .gguf in model dir).
+/// We probe multiple candidate roots to handle different LM Studio configurations.
+fn scan_lmstudio_models(
+    models_dir: &std::path::Path,
+    source: &str,
+    models: &mut Vec<LocalModelInfo>,
+) {
+    // Build candidate scan roots
+    let mut scan_roots: Vec<std::path::PathBuf> = Vec::new();
+
+    // 1. Try the configured path directly
+    if models_dir.exists() { scan_roots.push(models_dir.to_path_buf()); }
+
+    // 2. <configured>/hub/models (hub inside the configured root)
+    let hub_sub = models_dir.join("hub").join("models");
+    if hub_sub.exists() && !scan_roots.contains(&hub_sub) { scan_roots.push(hub_sub); }
+
+    // 3. Sibling hub: parent(configured)/hub/models
+    //    e.g. configured=~/.lmstudio/models → parent=~/.lmstudio → ~/.lmstudio/hub/models
+    if let Some(parent) = models_dir.parent() {
+        let sibling_hub = parent.join("hub").join("models");
+        if sibling_hub.exists() && !scan_roots.contains(&sibling_hub) {
+            scan_roots.push(sibling_hub);
+        }
+    }
+
+    let mut seen = std::collections::HashSet::<String>::new();
+
+    for scan_root in scan_roots {
+        let Ok(publishers) = std::fs::read_dir(&scan_root) else { continue; };
+        for pub_entry in publishers.filter_map(|e| e.ok()) {
+            if !pub_entry.file_type().map(|t| t.is_dir()).unwrap_or(false) { continue; }
+            let publisher = pub_entry.file_name().to_string_lossy().to_string();
+            if publisher.starts_with('.') { continue; }
+
+            let Ok(model_entries) = std::fs::read_dir(pub_entry.path()) else { continue; };
+            for model_entry in model_entries.filter_map(|e| e.ok()) {
+                if !model_entry.file_type().map(|t| t.is_dir()).unwrap_or(false) { continue; }
+                let model_name = model_entry.file_name().to_string_lossy().to_string();
+                if model_name.starts_with('.') { continue; }
+                let model_path = model_entry.path();
+
+                let dir_entries: Vec<_> = std::fs::read_dir(&model_path).ok()
+                    .map(|rd| rd.filter_map(|e| e.ok()).collect())
+                    .unwrap_or_default();
+
+                // LM Studio hub format uses manifest.json/model.yaml (no direct .gguf)
+                let has_manifest = model_path.join("manifest.json").exists()
+                    || model_path.join("model.yaml").exists();
+                let has_safetensors = dir_entries.iter()
+                    .any(|e| e.file_name().to_string_lossy().ends_with(".safetensors"));
+                let has_gguf = dir_entries.iter()
+                    .any(|e| e.file_name().to_string_lossy().ends_with(".gguf"));
+                let has_config = model_path.join("config.json").exists();
+
+                // Valid model: hub manifest OR actual weight files
+                if !has_manifest && !has_safetensors && !has_gguf { continue; }
+
+                let model_id = format!("{}/{}", publisher, model_name);
+                if seen.contains(&model_id) { continue; }
+                seen.insert(model_id.clone());
+
+                let size_mb = dir_size_recursive(&model_path);
+                let name_lower = model_id.to_lowercase();
+
+                let is_mlx = (has_safetensors && has_config)
+                    || (has_safetensors && (name_lower.contains("mlx")
+                        || name_lower.contains("4bit")
+                        || name_lower.contains("8bit")
+                        || name_lower.contains("-quantized")));
+
+                models.push(LocalModelInfo {
+                    name: model_id,
+                    path: model_path.to_string_lossy().to_string(),
+                    size_mb,
+                    is_mlx,
+                    source: source.to_string(),
+                });
+            }
+        }
+    }
+}
+
 fn dir_size_recursive(path: &std::path::Path) -> u64 {
     let mut total: u64 = 0;
     if !path.exists() { return 0; }
@@ -593,6 +681,7 @@ pub fn open_model_cache(source: Option<String>) -> Result<(), String> {
     let resolved = crate::commands::config::resolve_model_paths();
     let target = match source.as_deref() {
         Some("ollama") => crate::commands::environment::resolve_ollama_models_dir(),
+        Some("lmstudio") => resolved.lmstudio,
         Some("modelscope") => resolved.modelscope,
         _ => resolved.huggingface,
     };
@@ -643,4 +732,81 @@ pub fn open_adapter_folder(adapter_path: String) -> Result<(), String> {
         .spawn()
         .map_err(|e| format!("Failed to open folder: {}", e))?;
     Ok(())
+}
+
+/// Open the LM Studio application on macOS.
+#[tauri::command]
+pub fn open_lmstudio_app() -> Result<(), String> {
+    // Try the standard macOS app name
+    let result = std::process::Command::new("open")
+        .arg("-a")
+        .arg("LM Studio")
+        .spawn();
+    match result {
+        Ok(_) => Ok(()),
+        Err(_) => {
+            // Fallback: try bundle identifier
+            let result2 = std::process::Command::new("open")
+                .arg("-b")
+                .arg("ai.lmstudio")
+                .spawn();
+            match result2 {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Cannot open LM Studio: {}. Is it installed?", e)),
+            }
+        }
+    }
+}
+
+/// Check if LM Studio's local API server is running and return model list.
+#[tauri::command]
+pub async fn check_lmstudio_server() -> Result<LmStudioServerStatus, String> {
+    let cfg = crate::commands::config::load_config();
+    let api_url = cfg.lmstudio_api_url
+        .unwrap_or_else(|| "http://localhost:1234".to_string());
+    let url = format!("{}/v1/models", api_url.trim_end_matches('/'));
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    match client.get(&url).send().await {
+        Ok(resp) => {
+            if resp.status().is_success() {
+                let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+                let models: Vec<String> = body.get("data")
+                    .and_then(|d| d.as_array())
+                    .map(|arr| arr.iter()
+                        .filter_map(|m| m.get("id").and_then(|id| id.as_str()).map(String::from))
+                        .collect())
+                    .unwrap_or_default();
+                Ok(LmStudioServerStatus {
+                    running: true,
+                    models,
+                    error: None,
+                })
+            } else {
+                Ok(LmStudioServerStatus {
+                    running: false,
+                    models: vec![],
+                    error: Some(format!("HTTP {}", resp.status())),
+                })
+            }
+        }
+        Err(e) => {
+            Ok(LmStudioServerStatus {
+                running: false,
+                models: vec![],
+                error: Some(e.to_string()),
+            })
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct LmStudioServerStatus {
+    pub running: bool,
+    pub models: Vec<String>,
+    pub error: Option<String>,
 }

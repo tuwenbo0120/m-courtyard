@@ -5,7 +5,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronDown, ChevronRight, CheckCircle2, RefreshCw,
-  FolderOpen, Globe, Download, HardDrive, Settings,
+  FolderOpen, Globe, Download, HardDrive, Settings, ExternalLink, Wifi, WifiOff,
 } from "lucide-react";
 
 export interface LocalModelInfo {
@@ -60,17 +60,20 @@ interface Props {
   projectId?: string;
   onSelectAdapter?: (adapter: AdapterInfo) => void;
   defaultOpen?: boolean;
+  source?: "ollama" | "lmstudio";
 }
 
 const SOURCE_LABELS_STATIC: Record<string, string> = {
   huggingface: "HuggingFace",
   modelscope: "ModelScope",
   ollama: "Ollama",
+  lmstudio: "LM Studio",
 };
 const SOURCE_COLORS: Record<string, string> = {
   huggingface: "text-orange-400/90 bg-orange-400/10",
   modelscope: "text-tag-ms bg-tag-ms/15",
   ollama: "text-sky-400/90 bg-sky-400/10",
+  lmstudio: "text-emerald-400/90 bg-emerald-400/10",
   trained: "text-tag-trained bg-tag-trained/15",
 };
 const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
@@ -234,9 +237,9 @@ const HF_DOWNLOAD_LINKS = [
   { labelKey: "hfLinks.allModels", url: "https://huggingface.co/mlx-community/models" },
 ];
 
-function isSourceUsableInMode(source: string, mode: ModelSelectorMode): boolean {
-  if (mode === "dataprep") return source === "ollama";
-  if (mode === "training") return source !== "ollama" && source !== "trained";
+function isSourceUsableInMode(source: string, mode: ModelSelectorMode, dataprepSource?: string): boolean {
+  if (mode === "dataprep") return source === (dataprepSource || "ollama");
+  if (mode === "training") return source !== "ollama" && source !== "lmstudio" && source !== "trained";
   if (mode === "export") return source === "trained";
   return true;
 }
@@ -245,26 +248,30 @@ function isModelUsable(
   source: string,
   mode: ModelSelectorMode,
   modelName: string,
-  daemonModels: OllamaModelInfo[]
+  daemonModels: OllamaModelInfo[],
+  dataprepSource?: string,
 ): boolean {
-  if (mode === "training") return source !== "ollama" && source !== "trained";
+  if (mode === "training") return source !== "ollama" && source !== "lmstudio" && source !== "trained";
   if (mode === "dataprep") {
-    if (source !== "ollama") return false;
-    return isOllamaModelVisibleToDaemon(modelName, daemonModels);
+    const target = dataprepSource || "ollama";
+    if (source !== target) return false;
+    if (target === "ollama") return isOllamaModelVisibleToDaemon(modelName, daemonModels);
+    return true; // lmstudio models are always usable
   }
   if (mode === "export") return source === "trained";
   return true;
 }
 
-function getDisabledReasonKey(source: string, mode: ModelSelectorMode, daemonVisible: boolean): string {
+function getDisabledReasonKey(source: string, mode: ModelSelectorMode, daemonVisible: boolean, dataprepSource?: string): string {
   if (mode === "training") {
-    if (source === "ollama") return "modelSelector.disabledReason.ollamaNoLora";
+    if (source === "ollama" || source === "lmstudio") return "modelSelector.disabledReason.ollamaNoLora";
     if (source === "trained") return "modelSelector.disabledReason.trainedNotBase";
   }
   if (mode === "dataprep") {
+    const target = dataprepSource || "ollama";
     if (source === "trained") return "modelSelector.disabledReason.adapterNoGen";
-    if (source !== "ollama") return "modelSelector.disabledReason.ollamaOnly";
-    if (!daemonVisible) return "modelSelector.disabledReason.notInDaemon";
+    if (source !== target) return target === "lmstudio" ? "modelSelector.disabledReason.lmstudioOnly" : "modelSelector.disabledReason.ollamaOnly";
+    if (target === "ollama" && !daemonVisible) return "modelSelector.disabledReason.notInDaemon";
   }
   if (mode === "export") {
     if (source !== "trained") return "modelSelector.disabledReason.selectAdapter";
@@ -272,7 +279,7 @@ function getDisabledReasonKey(source: string, mode: ModelSelectorMode, daemonVis
   return "";
 }
 
-export function ModelSelector({ mode, selectedModel, onSelect, disabled, projectId, onSelectAdapter, defaultOpen }: Props) {
+export function ModelSelector({ mode, selectedModel, onSelect, disabled, projectId, onSelectAdapter, defaultOpen, source: dataprepSource }: Props) {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
   const sourceLabel = (s: string) => {
@@ -395,8 +402,8 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
 
   // Sort sources: most usable models first
   const sortedSources = Object.keys(grouped).sort((a, b) => {
-    const usableA = grouped[a].filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels)).length;
-    const usableB = grouped[b].filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels)).length;
+    const usableA = grouped[a].filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource)).length;
+    const usableB = grouped[b].filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource)).length;
     return usableB - usableA;
   });
 
@@ -456,7 +463,7 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
       // Find the first source that has usable models
       const best = sortedSources.find((source) => {
         const models = grouped[source] || [];
-        return models.some((m) => isModelUsable(m.source, mode, m.name, ollamaModels));
+        return models.some((m) => isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource));
       });
       if (best) setExpandedSources(new Set([best]));
     }
@@ -469,6 +476,50 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
   const openUrl = (url: string) => {
     invoke("plugin:opener|open_url", { url });
   };
+
+  // LM Studio server status
+  const [lmsStatus, setLmsStatus] = useState<"idle" | "checking" | "running" | "stopped">("idle");
+  const [lmsModels, setLmsModels] = useState<string[]>([]);
+  const [lmsCheckResult, setLmsCheckResult] = useState<"idle" | "connected" | "failed">("idle");
+  const lmsCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const checkLmsServer = useCallback(async () => {
+    setLmsStatus("checking");
+    setLmsCheckResult("idle");
+    if (lmsCheckTimerRef.current) clearTimeout(lmsCheckTimerRef.current);
+    try {
+      const result = await invoke<{ running: boolean; models: string[]; error: string | null }>("check_lmstudio_server");
+      if (result.running) {
+        setLmsStatus("running");
+        setLmsModels(result.models);
+        setLmsCheckResult("connected");
+      } else {
+        setLmsStatus("stopped");
+        setLmsCheckResult("failed");
+      }
+    } catch {
+      setLmsStatus("stopped");
+      setLmsCheckResult("failed");
+    }
+    lmsCheckTimerRef.current = setTimeout(() => setLmsCheckResult("idle"), 4000);
+  }, []);
+
+  const openLmsApp = useCallback(async () => {
+    try {
+      await invoke("open_lmstudio_app");
+    } catch {
+      // ignore - app may not be installed
+    }
+  }, []);
+
+  // Auto-check LM Studio server when in LM Studio mode
+  const lmsAutoChecked = useRef(false);
+  useEffect(() => {
+    if (dataprepSource === "lmstudio" && !lmsAutoChecked.current) {
+      lmsAutoChecked.current = true;
+      checkLmsServer();
+    }
+  }, [dataprepSource, checkLmsServer]);
 
   const openSourceFolder = (source: string) => {
     if (source === "trained" && projectId) {
@@ -490,7 +541,7 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
   };
 
   const totalModels = combinedModels.length;
-  const usableModels = combinedModels.filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels)).length;
+  const usableModels = combinedModels.filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource)).length;
 
   const autoOpenedRef = useRef(false);
   useEffect(() => {
@@ -501,6 +552,116 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
       }
     }
   }, [defaultOpen, localLoaded, ollamaLoaded, usableModels]);
+
+  // ── LM Studio unified panel (no tabs, no online button) ──────────────────
+  if (mode === "dataprep" && dataprepSource === "lmstudio") {
+    const lmsLocalModels = combinedModels.filter((m) => m.source === "lmstudio");
+    return (
+      <div className="rounded-lg border border-border bg-background">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-3 py-2">
+          <span className="text-xs font-medium text-foreground">LM Studio</span>
+          <button
+            onClick={() => loadModels()}
+            disabled={loading}
+            className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+          >
+            <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
+            {loading ? t("modelSelector.scanning") : t("modelSelector.refresh")}
+          </button>
+        </div>
+
+        <div className="p-3 space-y-3">
+          {/* Model list or empty guide */}
+          {loading ? (
+            <p className="py-4 text-center text-xs text-muted-foreground/60">{t("modelSelector.scanningModels")}</p>
+          ) : lmsLocalModels.length > 0 ? (
+            <div ref={listRef} onScroll={handleListScroll} className="max-h-64 space-y-1 overflow-y-auto overflow-x-hidden log-scroll-container">
+              {lmsLocalModels.map((m) => {
+                const usable = isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource);
+                const isSelected = selectedModel === m.name || selectedModel === m.path;
+                return (
+                  <button
+                    key={m.path + m.name}
+                    onClick={() => usable && handleSelectModel(m)}
+                    disabled={!usable || disabled}
+                    className={`flex w-full min-w-0 items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors ${
+                      isSelected
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : usable
+                        ? "border-border text-muted-foreground hover:bg-accent"
+                        : "border-border/50 text-muted-foreground/40 cursor-not-allowed"
+                    }`}
+                  >
+                    {isSelected ? (
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary">
+                        <span className="h-2 w-2 rounded-full bg-primary" />
+                      </span>
+                    ) : (
+                      <span className={`h-4 w-4 shrink-0 rounded-full border-2 ${usable ? "border-muted-foreground/30" : "border-muted-foreground/15"}`} />
+                    )}
+                    <span className={`flex-1 min-w-0 truncate font-medium ${usable ? "text-foreground" : "text-muted-foreground/40"}`}>{m.name}</span>
+                    <span className="ml-2 shrink-0 text-muted-foreground/70">
+                      {m.size_mb > 1024 ? `${(m.size_mb / 1024).toFixed(1)} GB` : m.size_mb > 0 ? `${m.size_mb} MB` : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-2 py-1">
+              <p className="text-xs text-muted-foreground">{t("modelSelector.lmstudioOnlineHint")}</p>
+              <div className="space-y-1.5 pl-1">
+                <p className="text-[11px] text-muted-foreground/80">{t("modelSelector.lmstudioStep1")}</p>
+                <p className="text-[11px] text-muted-foreground/80">{t("modelSelector.lmstudioStep2")}</p>
+                <p className="text-[11px] text-muted-foreground/80">{t("modelSelector.lmstudioStep3")}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={openLmsApp}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-primary bg-primary/10 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+            >
+              <ExternalLink size={12} />
+              {t("modelSelector.lmstudioOpenApp")}
+            </button>
+            <button
+              onClick={() => { checkLmsServer(); loadModels(); }}
+              disabled={lmsStatus === "checking" || loading}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
+                lmsCheckResult === "connected"
+                  ? "border-success/40 bg-success/10 text-success hover:bg-success/15"
+                  : lmsCheckResult === "failed"
+                  ? "border-amber-500/40 bg-amber-500/8 text-amber-500 hover:bg-amber-500/12"
+                  : "border-border text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              {lmsStatus === "checking" ? (
+                <RefreshCw size={12} className="animate-spin" />
+              ) : lmsCheckResult === "connected" ? (
+                <Wifi size={12} />
+              ) : lmsCheckResult === "failed" ? (
+                <WifiOff size={12} />
+              ) : (
+                <RefreshCw size={12} />
+              )}
+              {lmsStatus === "checking"
+                ? t("modelSelector.lmstudioChecking")
+                : lmsCheckResult === "connected"
+                ? t("modelSelector.lmstudioConnectedBtn")
+                : lmsCheckResult === "failed"
+                ? t("modelSelector.lmstudioNotConnectedBtn")
+                : t("modelSelector.lmstudioCheckServer")}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-2">
@@ -568,7 +729,7 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
               </button>
             </div>
             <button
-              onClick={() => invoke("open_model_cache", { source: mode === "dataprep" ? "ollama" : null })}
+              onClick={() => invoke("open_model_cache", { source: mode === "dataprep" ? (dataprepSource || "ollama") : null })}
               className="flex items-center gap-1 shrink-0 text-xs text-muted-foreground hover:text-foreground"
               title={t("modelSelector.modelCacheDir")}
             >
@@ -606,10 +767,10 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                   </div>
                 ) : (
                   <div ref={listRef} onScroll={handleListScroll} className="max-h-64 space-y-1 overflow-y-auto overflow-x-hidden log-scroll-container">
-                    {sortedSources.filter((source) => isSourceUsableInMode(source, mode)).map((source) => {
+                    {sortedSources.filter((source) => isSourceUsableInMode(source, mode, dataprepSource)).map((source) => {
                       const models = grouped[source];
                       const expanded = expandedSources.has(source);
-                      const usableCount = models.filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels)).length;
+                      const usableCount = models.filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource)).length;
                       return (
                         <div key={source}>
                           {/* Source Header */}
@@ -623,8 +784,8 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                             >
                               {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                               <span className={`rounded px-1.5 py-0.5 text-[10px] ${
-                                (source === "ollama" || source === "huggingface")
-                                  ? (usableCount > 0 ? "text-sky-400/90 bg-sky-400/10" : "text-orange-400/90 bg-orange-400/10")
+                                (source === "ollama" || source === "huggingface" || source === "lmstudio")
+                                  ? (usableCount > 0 ? (SOURCE_COLORS[source] || "text-sky-400/90 bg-sky-400/10") : "text-orange-400/90 bg-orange-400/10")
                                   : (SOURCE_COLORS[source] || "bg-muted text-muted-foreground")
                               }`}>
                                 {sourceLabel(source)}
@@ -649,9 +810,9 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                             <div className="space-y-0.5 overflow-x-hidden">
                               {models.map((m) => {
                                 const daemonVisible = isOllamaModelVisibleToDaemon(m.name, ollamaModels);
-                                const usable = isModelUsable(m.source, mode, m.name, ollamaModels);
+                                const usable = isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource);
                                 const isSelected = selectedModel === m.name || selectedModel === m.path;
-                                const reasonKey = getDisabledReasonKey(m.source, mode, daemonVisible);
+                                const reasonKey = getDisabledReasonKey(m.source, mode, daemonVisible, dataprepSource);
                                 const reason = reasonKey ? t(reasonKey) : "";
                                 return (
                                   <button
@@ -709,7 +870,94 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
             ) : (
               /* ======== Online Models Tab ======== */
               <div className="space-y-2">
-                {mode === "dataprep" ? (
+                {mode === "dataprep" && dataprepSource === "lmstudio" ? (
+                  /* --- DataPrep + LM Studio: interactive setup card --- */
+                  <div className="space-y-3">
+                    {/* Server status indicator */}
+                    <div className={`flex items-center gap-2 rounded-md border px-3 py-2 text-xs ${
+                      lmsStatus === "running"
+                        ? "border-success/30 bg-success/5 text-success"
+                        : lmsStatus === "stopped"
+                        ? "border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+                        : "border-border bg-background/50 text-muted-foreground"
+                    }`}>
+                      {lmsStatus === "checking" ? (
+                        <RefreshCw size={12} className="animate-spin shrink-0" />
+                      ) : lmsStatus === "running" ? (
+                        <Wifi size={12} className="shrink-0" />
+                      ) : (
+                        <WifiOff size={12} className="shrink-0" />
+                      )}
+                      <span className="flex-1">
+                        {lmsStatus === "checking"
+                          ? t("modelSelector.lmstudioChecking")
+                          : lmsStatus === "running"
+                          ? `${t("modelSelector.lmstudioServerRunning")} · ${t("modelSelector.lmstudioServerModels", { count: lmsModels.length })}`
+                          : lmsStatus === "stopped"
+                          ? t("modelSelector.lmstudioServerStopped")
+                          : t("modelSelector.lmstudioOnlineHint")}
+                      </span>
+                    </div>
+
+                    {/* Step-by-step guide */}
+                    <div className="rounded-lg border border-border bg-card/30 p-3 space-y-2">
+                      <p className="text-xs font-medium text-foreground">{t("modelSelector.lmstudioOnlineHint")}</p>
+                      <div className="space-y-1">
+                        <p className="text-[11px] text-muted-foreground">{t("modelSelector.lmstudioStep1")}</p>
+                        <p className="text-[11px] text-muted-foreground">{t("modelSelector.lmstudioStep2")}</p>
+                        <p className="text-[11px] text-muted-foreground">{t("modelSelector.lmstudioStep3")}</p>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={openLmsApp}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-primary bg-primary/10 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                      >
+                        <ExternalLink size={12} />
+                        {t("modelSelector.lmstudioOpenApp")}
+                      </button>
+                      <button
+                        onClick={checkLmsServer}
+                        disabled={lmsStatus === "checking"}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
+                      >
+                        {lmsStatus === "checking" ? (
+                          <RefreshCw size={12} className="animate-spin" />
+                        ) : (
+                          <Wifi size={12} />
+                        )}
+                        {t("modelSelector.lmstudioCheckServer")}
+                      </button>
+                    </div>
+
+                    {/* Show loaded model names when server is running */}
+                    {lmsStatus === "running" && lmsModels.length > 0 && (
+                      <div className="space-y-1">
+                        {lmsModels.map((m) => (
+                          <button
+                            key={m}
+                            onClick={() => onSelect(m)}
+                            disabled={disabled}
+                            className={`flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors disabled:opacity-50 ${
+                              selectedModel === m
+                                ? "border-primary bg-primary/10 text-foreground"
+                                : "border-border text-muted-foreground hover:bg-accent"
+                            }`}
+                          >
+                            {selectedModel === m ? (
+                              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span>
+                            ) : (
+                              <span className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/30" />
+                            )}
+                            <span className="font-medium text-foreground truncate">{m}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : mode === "dataprep" ? (
                   /* --- DataPrep: Ollama models --- */
                   <>
                     <div className="flex items-center justify-between">

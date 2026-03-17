@@ -60,7 +60,7 @@ interface GenerationState {
 
   // Persisted form state (survive page navigation)
   formGenMode: string;
-  formGenSource: "ollama" | "builtin";
+  formGenSource: "ollama" | "lmstudio" | "builtin";
   formGenModel: string;
   formManualModelPath: string;
   formEnablePrivacyFilter: boolean;

@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-03-17
+
+### Added
+- **LM Studio First-class Local Runtime Path**: M-Courtyard now treats LM Studio as a parallel local runtime for AI dataset generation instead of presenting Ollama as the only practical option.
+  - Added LM Studio model discovery and scanning updates for the current LM Studio storage layout
+  - Added LM Studio local server preflight checks for clearer connection / model availability feedback
+  - Added in-app actions to open LM Studio and check the local server connection directly from the model selector
+  - Added a simplified single-panel LM Studio model selection flow for Data Prep
+- **Runtime Positioning Refresh Across Docs**: README, release notes, and in-app copy now explain Ollama, LM Studio, built-in rules, MLX export, and GGUF export as parallel supported paths rather than centering everything around Ollama
+
+### Fixed
+- **LM Studio Server Guidance**: Refined the user guidance to match the actual LM Studio flow (`Developer → Local Server → Status = Running / ⌘R`) instead of vague “start server” messaging
+- **LM Studio Model Detection**: Fixed local model scanning so current LM Studio model directories are detected more reliably
+- **LM Studio Connection Feedback**: The “Check Connection” action now returns an explicit visual result instead of ending with no clear success/failure state
+
+### Changed
+- Updated the app version and release materials to `0.5.0`
+- GitHub release requirements text now lists `Ollama` and `LM Studio` side by side and explicitly mentions the built-in rules fallback
+
 ## [0.4.11] - 2026-03-11
 
 ### Added
@@ -332,6 +351,7 @@ Delivers the **Batch Processing** cluster (PRD D-1 · D-2 · H-3): multi-file dr
 - **GitHub Actions CI**: Automated .dmg build and release on tag push
 - **Discord Integration**: Automated release notifications via webhook
 
+[0.5.0]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.5.0
 [0.4.11]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.11
 [0.4.10]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.10
 [0.4.9]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.4.9

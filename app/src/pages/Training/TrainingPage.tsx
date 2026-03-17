@@ -1164,9 +1164,11 @@ export function TrainingPage() {
                               <span className="text-foreground">
                                 {v.source === "ollama"
                                   ? t("dataset.methodOllama", { model: v.model || "?" })
-                                  : v.source === "imported"
-                                    ? t("dataset.methodImported")
-                                    : t("dataset.methodBuiltin")}
+                                  : v.source === "lmstudio"
+                                    ? t("dataset.methodLmstudio", { model: v.model || "?" })
+                                    : v.source === "imported"
+                                      ? t("dataset.methodImported")
+                                      : t("dataset.methodBuiltin")}
                               </span>
                             </div>
                           )}

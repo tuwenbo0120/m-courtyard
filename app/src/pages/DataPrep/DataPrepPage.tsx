@@ -214,7 +214,7 @@ export function DataPrepPage() {
     setFormField,
   } = useGenerationStore();
   const setGenMode = (v: string) => setFormField("formGenMode", v);
-  const setGenSource = (v: "ollama" | "builtin") => setFormField("formGenSource", v);
+  const setGenSource = (v: "ollama" | "lmstudio" | "builtin") => setFormField("formGenSource", v);
   const setGenModel = (v: string) => setFormField("formGenModel", v);
   const setEnablePrivacyFilter = (v: boolean) => setFormField("formEnablePrivacyFilter", v);
   const setEnableFuzzyDedup = (v: boolean) => setFormField("formEnableFuzzyDedup", v);
@@ -539,7 +539,7 @@ export function DataPrepPage() {
       showValidationHint("validation.needFiles", sectionStep1Ref);
       return;
     }
-    if (genSource === "ollama" && !genModel.trim()) {
+    if ((genSource === "ollama" || genSource === "lmstudio") && !genModel.trim()) {
       setStep2Open(true);
       showValidationHint("validation.needModel", sectionStep2Ref);
       return;
@@ -556,7 +556,7 @@ export function DataPrepPage() {
   // Start the generation pipeline: always clean current raw files → generate
   const handleStartPipeline = async () => {
     if (!currentProject) return;
-    if (genSource === "ollama" && !genModel.trim()) return;
+    if ((genSource === "ollama" || genSource === "lmstudio") && !genModel.trim()) return;
     // Check global task lock
     const check = taskCanStart(currentProject.id, "generating");
     if (!check.allowed) return;
@@ -629,7 +629,7 @@ export function DataPrepPage() {
     try {
       await invoke("generate_dataset", {
         projectId: currentProject.id,
-        model: formGenSource === "ollama" ? formGenModel : "",
+        model: (formGenSource === "ollama" || formGenSource === "lmstudio") ? formGenModel : "",
         mode: formGenMode,
         source: formGenSource,
         resume: false,
@@ -898,7 +898,7 @@ export function DataPrepPage() {
     }
   }, [rawFiles.length]);
 
-  const methodDone = genSource === "builtin" || (genSource === "ollama" && !!genModel);
+  const methodDone = genSource === "builtin" || ((genSource === "ollama" || genSource === "lmstudio") && !!genModel);
   const typeDone = !!genMode;
 
   const dataPrepSubSteps = [
@@ -1176,7 +1176,7 @@ export function DataPrepPage() {
                 </Tooltip>
                 {!step2Open && (
                   <span className="text-xs text-muted-foreground">
-                    {genSource === "ollama" ? t("generate.source_ollama") : t("generate.source_builtin")}
+                    {genSource === "ollama" ? t("generate.source_ollama") : genSource === "lmstudio" ? t("generate.source_lmstudio") : t("generate.source_builtin")}
                   </span>
                 )}
               </button>
@@ -1195,6 +1195,17 @@ export function DataPrepPage() {
                       {t("generate.source_ollama")}
                     </button>
                     <button
+                      onClick={() => setGenSource("lmstudio")}
+                      disabled={generating}
+                      className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
+                        genSource === "lmstudio"
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-input bg-background text-muted-foreground hover:bg-accent"
+                      }`}
+                    >
+                      {t("generate.source_lmstudio")}
+                    </button>
+                    <button
                       onClick={() => setGenSource("builtin")}
                       disabled={generating}
                       className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
@@ -1206,6 +1217,43 @@ export function DataPrepPage() {
                       {t("generate.source_builtin")}
                     </button>
                   </div>
+
+                  {genSource === "lmstudio" && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-1">
+                        <p className="text-xs text-muted-foreground">{t("generate.lmstudioHint")}</p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info size={12} className="text-muted-foreground/50 cursor-default shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-[360px]">{t("generate.lmstudioScanGuide")}</TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="pt-1">
+                        {genModel && (
+                          <div className="mb-2 flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+                            <span className="truncate text-sm font-medium text-foreground">{genModel}</span>
+                            {!generating && (
+                              <button onClick={() => setGenModel("")} className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {!genModel && !generating && (
+                          <ModelSelector
+                            mode="dataprep"
+                            selectedModel={genModel}
+                            onSelect={(modelId) => setGenModel(modelId)}
+                            defaultOpen={true}
+                            disabled={generating}
+                            projectId={currentProject?.id}
+                            source="lmstudio"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {genSource === "ollama" && (
                     <div className="space-y-3">
@@ -1421,7 +1469,7 @@ export function DataPrepPage() {
                       <button
                         onClick={handleStartWithValidation}
                         className={`flex w-full items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
-                          !genMode || (genSource === "ollama" && !genModel.trim()) || rawFiles.length === 0 || !taskCheck.allowed
+                          !genMode || ((genSource === "ollama" || genSource === "lmstudio") && !genModel.trim()) || rawFiles.length === 0 || !taskCheck.allowed
                             ? "bg-primary/50 text-primary-foreground/70 cursor-not-allowed"
                             : "bg-primary text-primary-foreground hover:bg-primary/90"
                         }`}
@@ -1742,7 +1790,7 @@ export function DataPrepPage() {
                                   {v.source && (
                                     <div className="flex gap-2">
                                       <span className="shrink-0 text-muted-foreground">{t("dataset.genMethod")}:</span>
-                                      <span className="text-foreground">{v.source === "ollama" ? t("dataset.methodOllama", { model: v.model || "?" }) : t("dataset.methodBuiltin")}</span>
+                                      <span className="text-foreground">{v.source === "ollama" ? t("dataset.methodOllama", { model: v.model || "?" }) : v.source === "lmstudio" ? t("dataset.methodLmstudio", { model: v.model || "?" }) : t("dataset.methodBuiltin")}</span>
                                     </div>
                                   )}
                                   {v.quality_scoring_enabled && (

@@ -71,7 +71,6 @@ export function ExportPage() {
   const [baseModel, setBaseModel] = useState("");
   const [quantization, setQuantization] = useState("");
   const [quantEdited, setQuantEdited] = useState(false);
-  const [keepFused, setKeepFused] = useState(true);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [copied, setCopied] = useState(false);
   const [ggufCopied, setGgufCopied] = useState(false);
@@ -101,6 +100,7 @@ export function ExportPage() {
   const [adapterDropdownOpen, setAdapterDropdownOpen] = useState(false);
   const [deletingPath, setDeletingPath] = useState<string | null>(null);
   const [ollamaPathInfo, setOllamaPathInfo] = useState<OllamaPathInfo | null>(null);
+  const [lmstudioModelsPath, setLmstudioModelsPath] = useState<string | null>(null);
 
   const handleDeleteAdapter = async (a: AdapterInfo, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -141,6 +141,12 @@ export function ExportPage() {
     checkServer();
     const interval = setInterval(checkServer, 5000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    invoke<{ lmstudio: string }>("get_app_config")
+      .then((cfg) => setLmstudioModelsPath(cfg.lmstudio || null))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -302,7 +308,6 @@ export function ExportPage() {
         model: baseModel,
         adapterPath: selectedAdapter || null,
         quantization,
-        keepFused: keepFused || undefined,
         lang: i18n.language,
       });
     } catch (e) {
@@ -736,9 +741,9 @@ export function ExportPage() {
               </Tooltip>
             </button>
             {step4Open && (
-            <div className="border-t border-border p-4 space-y-4">
+            <div className="border-t border-border p-4 space-y-3">
               {/* Ollama Export Box */}
-              <div className="rounded-lg border border-border bg-background/30 p-4 space-y-4">
+              <div className="rounded-lg border border-border bg-background/30 p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -750,7 +755,6 @@ export function ExportPage() {
                     <TooltipContent className="max-w-[450px]">{t("ollama.hint")}</TooltipContent>
                   </Tooltip>
                 </div>
-
                 <button
                   onClick={handleExportWithValidation}
                   disabled={isExporting || isGgufExporting || isMlxExporting || !modelName.trim() || !baseModel.trim() || !quantization || adapters.length === 0 || ollamaInstalled === false}
@@ -763,18 +767,69 @@ export function ExportPage() {
                   <Upload size={16} />
                   {isExporting ? t("ollama.exporting") : t("ollama.exportButton")}
                 </button>
+              </div>
 
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={keepFused}
-                    onChange={(e) => setKeepFused(e.target.checked)}
-                    disabled={isExporting || isMlxExporting}
-                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary disabled:opacity-50"
-                  />
-                  <span className="text-sm text-foreground">{t("keepFused.label")}</span>
-                  <span className="text-[0.625rem] text-muted-foreground">({t("keepFused.hint")})</span>
-                </label>
+              {/* LM Studio (MLX) Export Box */}
+              <div className="rounded-lg border border-border bg-background/30 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground cursor-default">
+                        {t("mlx.title")}
+                        <Info size={13} className="text-muted-foreground/50" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[450px]">{t("mlx.description")}</TooltipContent>
+                  </Tooltip>
+                </div>
+                <button
+                  onClick={handleMlxExport}
+                  disabled={isMlxExporting || isExporting || isGgufExporting || !selectedAdapter || !baseModel}
+                  className={`flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
+                    isMlxExporting || isExporting || isGgufExporting || !selectedAdapter || !baseModel
+                      ? "bg-primary/40 text-primary-foreground/50 cursor-not-allowed"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  }`}
+                >
+                  <Upload size={16} />
+                  {isMlxExporting ? t("mlx.exporting") : t("mlx.exportButton")}
+                </button>
+              </div>
+
+              {/* GGUF Export Box */}
+              <div className="rounded-lg border border-border bg-background/30 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground cursor-default">
+                        {t("gguf.title")}
+                        <Info size={13} className="text-muted-foreground/50" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[450px]">{t("gguf.description")} {t("gguf.archNote")}</TooltipContent>
+                  </Tooltip>
+                </div>
+                {ggufPathWarning && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                    <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-[0.6875rem] text-amber-300 leading-relaxed">
+                      {t("pathWarning", { configuredPath: ggufPathWarning.configuredPath, fallbackPath: ggufPathWarning.fallbackPath })}
+                    </p>
+                  </div>
+                )}
+                <button
+                  onClick={handleGgufExport}
+                  disabled={isGgufExporting || isExporting || !selectedAdapter || !baseModel || !ggufSupported}
+                  className={`flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
+                    isGgufExporting || isExporting || !selectedAdapter || !baseModel || !ggufSupported
+                      ? "bg-primary/40 text-primary-foreground/50 cursor-not-allowed"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  }`}
+                  title={!ggufSupported && baseModel ? t("gguf.archNote") : undefined}
+                >
+                  <Upload size={16} />
+                  {isGgufExporting ? t("gguf.exporting") : t("gguf.exportButton")}
+                </button>
               </div>
             </div>
             )}
@@ -1014,214 +1069,138 @@ export function ExportPage() {
               )}
             </div>
           )}
+          {/* MLX Progress & Result */}
+          {(isMlxExporting || mlxLogs.length > 0) && (
+            <div className="space-y-2">
+              {isMlxExporting && mlxProgress && (
+                <div className="rounded-md border border-border bg-background/40 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Loader2 size={12} className="animate-spin text-primary shrink-0" />
+                    <p className="text-xs text-muted-foreground whitespace-pre-line">{mlxProgress}</p>
+                  </div>
+                </div>
+              )}
+              {mlxLogs.length > 0 && (
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground">{t("mlx.title")} {t("exportLog")}</span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(mlxLogs.join("\n")); setMlxCopied(true); setTimeout(() => setMlxCopied(false), 3000); }}
+                      className="flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[0.6875rem] text-muted-foreground hover:bg-accent"
+                    >
+                      {mlxCopied ? <Check size={11} className="text-success" /> : <Copy size={11} />}
+                      {mlxCopied ? tc("copied") : tc("copyLog")}
+                    </button>
+                  </div>
+                  <div ref={mlxLogRef} className="h-[160px] overflow-auto rounded-lg border border-border bg-card p-3 font-mono text-xs leading-relaxed">
+                    {mlxLogs.map((line, i) => (
+                      <div key={i} className={
+                        line.includes("!!!") || line.includes("Error") ? "text-red-400" :
+                        line.includes("---") || line.includes("exported") ? "text-success" :
+                        "text-foreground"
+                      }>{line}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {mlxResult && !isMlxExporting && mlxResult.startsWith("__success__") && (
+            <div className="rounded-lg border border-success/30 bg-success/10 p-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={15} className="text-success shrink-0" />
+                  <span className="text-sm font-medium text-success">{t("mlx.success")}</span>
+                </div>
+                {mlxOutputDir && (
+                  <button
+                    onClick={() => invoke("open_adapter_folder", { adapterPath: mlxOutputDir })}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    <FolderOpen size={12} />
+                    {t("mlx.openFolder")}
+                  </button>
+                )}
+              </div>
+              {mlxOutputDir && <p className="text-xs text-success/70">{t("mlx.successHint")} <span className="font-mono break-all">{mlxOutputDir}</span></p>}
+              {mlxSizeMb > 0 && <p className="text-[0.6875rem] text-success/50">{t("mlx.sizeHint", { size: mlxSizeMb })}</p>}
+              <p className="text-[0.6875rem] text-emerald-400/70 border-t border-success/20 pt-1.5 mt-0.5">{t("mlx.lmstudioHint")}</p>
+              {lmstudioModelsPath && (
+                <button
+                  onClick={() => invoke("open_model_cache", { source: "lmstudio" })}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400 transition-colors hover:bg-emerald-500/20"
+                >
+                  <FolderOpen size={11} />
+                  {t("mlx.openLmstudioFolder")}
+                </button>
+              )}
+            </div>
+          )}
+          {mlxResult && !isMlxExporting && mlxResult.startsWith("Error") && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400 whitespace-pre-wrap">{mlxResult}</div>
+          )}
+
+          {/* GGUF Progress & Result */}
+          {(isGgufExporting || ggufLogs.length > 0) && (
+            <div className="space-y-2">
+              {isGgufExporting && ggufProgress && (
+                <div className="rounded-md border border-border bg-background/40 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Loader2 size={12} className="animate-spin text-primary shrink-0" />
+                    <p className="text-xs text-muted-foreground whitespace-pre-line">{ggufProgress}</p>
+                  </div>
+                </div>
+              )}
+              {ggufLogs.length > 0 && (
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground">{t("gguf.title")} {t("exportLog")}</span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(ggufLogs.join("\n")); setGgufCopied(true); setTimeout(() => setGgufCopied(false), 3000); }}
+                      className="flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[0.6875rem] text-muted-foreground hover:bg-accent"
+                    >
+                      {ggufCopied ? <Check size={11} className="text-success" /> : <Copy size={11} />}
+                      {ggufCopied ? tc("copied") : tc("copyLog")}
+                    </button>
+                  </div>
+                  <div ref={ggufLogRef} className="h-[160px] overflow-auto rounded-lg border border-border bg-card p-3 font-mono text-xs leading-relaxed">
+                    {ggufLogs.map((line, i) => (
+                      <div key={i} className={
+                        line.includes("!!!") || line.includes("Error") ? "text-red-400" :
+                        line.includes("---") || line.includes("exported") ? "text-success" :
+                        "text-foreground"
+                      }>{line}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {ggufResult && !isGgufExporting && ggufResult.startsWith("__success__") && (
+            <div className="rounded-lg border border-success/30 bg-success/10 p-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={15} className="text-success shrink-0" />
+                  <span className="text-sm font-medium text-success">{t("gguf.success")}</span>
+                </div>
+                {ggufOutputDir && (
+                  <button
+                    onClick={() => invoke("open_adapter_folder", { adapterPath: ggufOutputDir })}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    <FolderOpen size={12} />
+                    {t("gguf.openFile")}
+                  </button>
+                )}
+              </div>
+              {ggufFilename && <p className="text-xs text-success/70">{t("gguf.successHint")} <span className="font-mono">{ggufFilename}</span></p>}
+            </div>
+          )}
+          {ggufResult && !isGgufExporting && ggufResult.startsWith("Error") && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400 whitespace-pre-wrap">{ggufResult}</div>
+          )}
           </div>
       </section>
-
-      {/* GGUF Export */}
-      <div className="rounded-lg border border-border bg-card p-5 space-y-4 shadow-sm transition-all duration-300">
-        <div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <h3 className="flex items-center gap-1.5 text-base font-semibold text-foreground cursor-default">
-                {t("gguf.title")}
-                <Info size={13} className="text-muted-foreground/50" />
-              </h3>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-[450px]">{t("gguf.description")} {t("gguf.archNote")}</TooltipContent>
-          </Tooltip>
-        </div>
-
-        {/* GGUF path warning */}
-        {ggufPathWarning && (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-            <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
-            <p className="text-[0.6875rem] text-amber-300 leading-relaxed">
-              {t("pathWarning", { configuredPath: ggufPathWarning.configuredPath, fallbackPath: ggufPathWarning.fallbackPath })}
-            </p>
-          </div>
-        )}
-
-        <button
-          onClick={handleGgufExport}
-          disabled={isGgufExporting || isExporting || !selectedAdapter || !baseModel || !ggufSupported}
-          className={`flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
-            isGgufExporting || isExporting || !selectedAdapter || !baseModel || !ggufSupported
-              ? "bg-primary/40 text-primary-foreground/50 cursor-not-allowed"
-              : "bg-primary text-primary-foreground hover:bg-primary/90"
-          }`}
-          title={!ggufSupported && baseModel ? t("gguf.archNote") : undefined}
-        >
-          <Upload size={16} />
-          {isGgufExporting ? t("gguf.exporting") : t("gguf.exportButton")}
-        </button>
-
-        {/* GGUF Progress */}
-        {(isGgufExporting || ggufLogs.length > 0) && (
-          <div className="space-y-2">
-            {isGgufExporting && ggufProgress && (
-              <div className="rounded-md border border-border bg-background/40 px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <Loader2 size={12} className="animate-spin text-primary shrink-0" />
-                  <p className="text-xs text-muted-foreground whitespace-pre-line">{ggufProgress}</p>
-                </div>
-              </div>
-            )}
-            {ggufLogs.length > 0 && (
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground">{t("exportLog")}</span>
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(ggufLogs.join("\n")); setGgufCopied(true); setTimeout(() => setGgufCopied(false), 3000); }}
-                    className="flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[0.6875rem] text-muted-foreground hover:bg-accent"
-                  >
-                    {ggufCopied ? <Check size={11} className="text-success" /> : <Copy size={11} />}
-                    {ggufCopied ? tc("copied") : tc("copyLog")}
-                  </button>
-                </div>
-                <div ref={ggufLogRef} className="h-[160px] overflow-auto rounded-lg border border-border bg-card p-3 font-mono text-xs leading-relaxed">
-                  {ggufLogs.map((line, i) => (
-                    <div key={i} className={
-                      line.includes("!!!") || line.includes("Error") ? "text-red-400" :
-                      line.includes("---") || line.includes("exported") ? "text-success" :
-                      "text-foreground"
-                    }>{line}</div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* GGUF Result */}
-        {ggufResult && !isGgufExporting && ggufResult.startsWith("__success__") && (
-          <div className="rounded-lg border border-success/30 bg-success/10 p-3 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={15} className="text-success shrink-0" />
-                <span className="text-sm font-medium text-success">{t("gguf.success")}</span>
-              </div>
-              {ggufOutputDir && (
-                <button
-                  onClick={() => invoke("open_adapter_folder", { adapterPath: ggufOutputDir })}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                  <FolderOpen size={12} />
-                  {t("gguf.openFile")}
-                </button>
-              )}
-            </div>
-            {ggufFilename && (
-              <p className="text-xs text-success/70">
-                {t("gguf.successHint")} <span className="font-mono">{ggufFilename}</span>
-              </p>
-            )}
-          </div>
-        )}
-        {ggufResult && !isGgufExporting && ggufResult.startsWith("Error") && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400 whitespace-pre-wrap">
-            {ggufResult}
-          </div>
-        )}
-      </div>
-
-      {/* ═══════ MLX Export Section ═══════ */}
-      <div className="rounded-lg border border-border bg-card p-5 space-y-4 shadow-sm transition-all duration-300">
-        <div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <h2 className="flex items-center gap-1.5 text-lg font-bold text-foreground cursor-default">
-                {t("mlx.title")}
-                <Info size={14} className="text-muted-foreground/50" />
-              </h2>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-[450px]">{t("mlx.description")}</TooltipContent>
-          </Tooltip>
-        </div>
-
-        <button
-          onClick={handleMlxExport}
-          disabled={isMlxExporting || isExporting || isGgufExporting || !selectedAdapter || !baseModel}
-          className={`flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
-            isMlxExporting || isExporting || isGgufExporting || !selectedAdapter || !baseModel
-              ? "bg-primary/40 text-primary-foreground/50 cursor-not-allowed"
-              : "bg-primary text-primary-foreground hover:bg-primary/90"
-          }`}
-        >
-          <Upload size={16} />
-          {isMlxExporting ? t("mlx.exporting") : t("mlx.exportButton")}
-        </button>
-
-        {/* MLX Progress */}
-        {(isMlxExporting || mlxLogs.length > 0) && (
-          <div className="space-y-2">
-            {isMlxExporting && mlxProgress && (
-              <div className="rounded-md border border-border bg-background/40 px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <Loader2 size={12} className="animate-spin text-primary shrink-0" />
-                  <p className="text-xs text-muted-foreground whitespace-pre-line">{mlxProgress}</p>
-                </div>
-              </div>
-            )}
-            {mlxLogs.length > 0 && (
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground">{t("exportLog")}</span>
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(mlxLogs.join("\n")); setMlxCopied(true); setTimeout(() => setMlxCopied(false), 3000); }}
-                    className="flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[0.6875rem] text-muted-foreground hover:bg-accent"
-                  >
-                    {mlxCopied ? <Check size={11} className="text-success" /> : <Copy size={11} />}
-                    {mlxCopied ? tc("copied") : tc("copyLog")}
-                  </button>
-                </div>
-                <div ref={mlxLogRef} className="h-[160px] overflow-auto rounded-lg border border-border bg-card p-3 font-mono text-xs leading-relaxed">
-                  {mlxLogs.map((line, i) => (
-                    <div key={i} className={
-                      line.includes("!!!") || line.includes("Error") ? "text-red-400" :
-                      line.includes("---") || line.includes("exported") ? "text-success" :
-                      "text-foreground"
-                    }>{line}</div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* MLX Result */}
-        {mlxResult && !isMlxExporting && mlxResult.startsWith("__success__") && (
-          <div className="rounded-lg border border-success/30 bg-success/10 p-3 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={15} className="text-success shrink-0" />
-                <span className="text-sm font-medium text-success">{t("mlx.success")}</span>
-              </div>
-              {mlxOutputDir && (
-                <button
-                  onClick={() => invoke("open_adapter_folder", { adapterPath: mlxOutputDir })}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                  <FolderOpen size={12} />
-                  {t("mlx.openFolder")}
-                </button>
-              )}
-            </div>
-            {mlxOutputDir && (
-              <p className="text-xs text-success/70">
-                {t("mlx.successHint")} <span className="font-mono break-all">{mlxOutputDir}</span>
-              </p>
-            )}
-            {mlxSizeMb > 0 && (
-              <p className="text-[0.6875rem] text-success/50">{t("mlx.sizeHint", { size: mlxSizeMb })}</p>
-            )}
-          </div>
-        )}
-        {mlxResult && !isMlxExporting && mlxResult.startsWith("Error") && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400 whitespace-pre-wrap">
-            {mlxResult}
-          </div>
-        )}
-      </div>
 
       {/* ═══════ Local Inference Server Section ═══════ */}
       <div className="rounded-lg border border-border bg-card p-5 space-y-4 shadow-sm transition-all duration-300">

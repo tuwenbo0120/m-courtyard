@@ -108,6 +108,7 @@
     "genMethod": "生成方式",
     "methodOllama": "AI 生成（{{model}}）",
     "methodBuiltin": "内置规则",
+    "methodLmstudio": "AI 生成 via LM Studio（{{model}}）",
     "methodImported": "外部导入",
     "modeQa": "知识问答",
     "modeImported": "外部导入",

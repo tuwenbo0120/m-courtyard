@@ -13,6 +13,8 @@ pub struct AppConfig {
     pub hf_source: String,
     /// Custom path to the ollama binary (overrides auto-detection)
     pub ollama_bin: Option<String>,
+    /// LM Studio local API base URL (default: http://localhost:1234)
+    pub lmstudio_api_url: Option<String>,
 }
 
 fn default_hf_source() -> String {
@@ -24,6 +26,7 @@ pub struct ModelPaths {
     pub huggingface: Option<String>,
     pub modelscope: Option<String>,
     pub ollama: Option<String>,
+    pub lmstudio: Option<String>,
 }
 
 fn config_path() -> PathBuf {
@@ -66,6 +69,9 @@ pub fn resolve_model_paths() -> ResolvedPaths {
         ollama: config.model_paths.ollama
             .map(PathBuf::from)
             .unwrap_or_else(|| home.join(".ollama").join("models")),
+        lmstudio: config.model_paths.lmstudio
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join(".lmstudio").join("models")),
     }
 }
 
@@ -73,6 +79,7 @@ pub struct ResolvedPaths {
     pub huggingface: PathBuf,
     pub modelscope: PathBuf,
     pub ollama: PathBuf,
+    pub lmstudio: PathBuf,
 }
 
 // ─── Tauri Commands ───
@@ -82,12 +89,16 @@ pub struct AppConfigResponse {
     pub huggingface: String,
     pub modelscope: String,
     pub ollama: String,
+    pub lmstudio: String,
     pub huggingface_custom: bool,
     pub modelscope_custom: bool,
     pub ollama_custom: bool,
+    pub lmstudio_custom: bool,
     pub export_path: Option<String>,
     pub default_export_root: String,
     pub ollama_installed: bool,
+    pub lmstudio_installed: bool,
+    pub lmstudio_api_url: String,
     pub hf_source: String,
     pub ollama_bin_path: String,
     pub ollama_bin_custom: bool,
@@ -105,16 +116,24 @@ pub fn get_app_config() -> Result<AppConfigResponse, String> {
         .unwrap_or_else(|| "./projects".to_string());
     let ollama_bin_custom = config.ollama_bin.is_some();
 
+    let lmstudio_installed = resolved.lmstudio.exists();
+    let lmstudio_api_url = config.lmstudio_api_url.clone()
+        .unwrap_or_else(|| "http://localhost:1234".to_string());
+
     Ok(AppConfigResponse {
         huggingface: resolved.huggingface.to_string_lossy().to_string(),
         modelscope: resolved.modelscope.to_string_lossy().to_string(),
         ollama: resolved.ollama.to_string_lossy().to_string(),
+        lmstudio: resolved.lmstudio.to_string_lossy().to_string(),
         huggingface_custom: config.model_paths.huggingface.is_some(),
         modelscope_custom: config.model_paths.modelscope.is_some(),
         ollama_custom: config.model_paths.ollama.is_some(),
+        lmstudio_custom: config.model_paths.lmstudio.is_some(),
         export_path: config.export_path,
         default_export_root,
         ollama_installed,
+        lmstudio_installed,
+        lmstudio_api_url,
         hf_source: config.hf_source,
         ollama_bin_path,
         ollama_bin_custom,
@@ -128,6 +147,7 @@ pub fn set_model_source_path(source: String, path: Option<String>) -> Result<(),
         "huggingface" => config.model_paths.huggingface = path,
         "modelscope" => config.model_paths.modelscope = path,
         "ollama" => config.model_paths.ollama = path,
+        "lmstudio" => config.model_paths.lmstudio = path,
         _ => return Err(format!("Unknown source: {}", source)),
     }
     save_config(&config)
@@ -193,6 +213,49 @@ pub fn set_ollama_bin_path(path: Option<String>) -> Result<(), String> {
     let mut config = load_config();
     config.ollama_bin = path;
     save_config(&config)
+}
+
+/// Set LM Studio API base URL (or reset to default).
+#[tauri::command]
+pub fn set_lmstudio_api_url(url: Option<String>) -> Result<(), String> {
+    let mut config = load_config();
+    config.lmstudio_api_url = url;
+    save_config(&config)
+}
+
+/// Check LM Studio API connectivity by hitting GET /v1/models.
+/// Returns list of model identifiers on success.
+#[tauri::command]
+pub async fn check_lmstudio_api() -> Result<Vec<String>, String> {
+    let config = load_config();
+    let base_url = config.lmstudio_api_url
+        .unwrap_or_else(|| "http://localhost:1234".to_string());
+    let url = format!("{}/v1/models", base_url.trim_end_matches('/'));
+
+    let resp = reqwest::Client::new()
+        .get(&url)
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await
+        .map_err(|e| format!("LM Studio API unreachable: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("LM Studio API returned status {}", resp.status()));
+    }
+
+    let body: serde_json::Value = resp.json().await
+        .map_err(|e| format!("Failed to parse LM Studio response: {}", e))?;
+
+    let models = body["data"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|m| m["id"].as_str().map(String::from))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    Ok(models)
 }
 
 /// Return the HF_ENDPOINT URL for the configured source (empty = default HuggingFace)

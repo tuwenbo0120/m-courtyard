@@ -15,12 +15,16 @@ interface AppConfigResponse {
   huggingface: string;
   modelscope: string;
   ollama: string;
+  lmstudio: string;
   huggingface_custom: boolean;
   modelscope_custom: boolean;
   ollama_custom: boolean;
+  lmstudio_custom: boolean;
   export_path: string | null;
   default_export_root: string;
   ollama_installed: boolean;
+  lmstudio_installed: boolean;
+  lmstudio_api_url: string;
   hf_source: string;
   ollama_bin_path: string;
   ollama_bin_custom: boolean;
@@ -74,11 +78,17 @@ export function SettingsPage() {
   const [cacheMsg, setCacheMsg] = useState<{ type: "success" | "warning"; text: string } | null>(null);
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
   const [appVersion, setAppVersion] = useState<string>("...");
+  const [lmstudioApiUrl, setLmstudioApiUrl] = useState<string>("");
+  const [lmstudioApiStatus, setLmstudioApiStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
+  const [lmstudioApiModelCount, setLmstudioApiModelCount] = useState(0);
 
   const loadConfig = useCallback(async () => {
     try {
       const cfg = await invoke<AppConfigResponse>("get_app_config");
       setConfig(cfg);
+      if (cfg.lmstudio_api_url && !lmstudioApiUrl) {
+        setLmstudioApiUrl(cfg.lmstudio_api_url);
+      }
     } catch { /* ignore */ }
   }, []);
 
@@ -291,6 +301,28 @@ export function SettingsPage() {
     }
   };
 
+  const handleCheckLmstudioApi = async () => {
+    setLmstudioApiStatus("checking");
+    try {
+      const result = await invoke<{ ok: boolean; model_count: number }>("check_lmstudio_api");
+      if (result.ok) {
+        setLmstudioApiStatus("ok");
+        setLmstudioApiModelCount(result.model_count);
+      } else {
+        setLmstudioApiStatus("error");
+      }
+    } catch {
+      setLmstudioApiStatus("error");
+    }
+  };
+
+  const handleSaveLmstudioApiUrl = async () => {
+    try {
+      await invoke("set_lmstudio_api_url", { url: lmstudioApiUrl || "http://localhost:1234" });
+      await loadConfig();
+    } catch { /* ignore */ }
+  };
+
   const { theme, setTheme, uiScale, setUiScale } = useThemeStore();
 
   const setLanguage = (lang: string) => {
@@ -382,6 +414,12 @@ export function SettingsPage() {
               <span className="text-sm text-muted-foreground">{t("environment.ollama")}</span>
               <span className={`text-sm font-medium ${env?.ollama_installed ? "text-success" : "text-muted-foreground"}`}>
                 {env ? (env.ollama_installed ? t("environment.ollamaReady") : t("environment.ollamaNotReady")) : "..."}
+              </span>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-sm text-muted-foreground">{t("environment.lmstudio")}</span>
+              <span className={`text-sm font-medium ${config?.lmstudio_installed ? "text-success" : "text-muted-foreground"}`}>
+                {config ? (config.lmstudio_installed ? t("environment.lmstudioReady") : t("environment.lmstudioNotReady")) : "..."}
               </span>
             </div>
           </div>
@@ -731,6 +769,71 @@ export function SettingsPage() {
                   </span>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* LM Studio Configuration */}
+        <div className="space-y-2">
+          <div>
+            <p className="text-xs font-medium text-foreground">{t("storage.lmstudioPath")}</p>
+            <p className="text-xs text-muted-foreground/70">{t("storage.lmstudioPathHint")}</p>
+          </div>
+          <div className="rounded-lg border border-border divide-y divide-border">
+            {/* LM Studio Model Path */}
+            <div className="px-4 py-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">{t("storage.lmstudioPath")}</span>
+                <div className="flex items-center gap-2">
+                  {config?.lmstudio_custom && (
+                    <button onClick={() => resetPath("lmstudio")} className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground">
+                      <RotateCcw size={10} />
+                      {t("storage.resetDefault")}
+                    </button>
+                  )}
+                  <button onClick={() => browseAndSetPath("lmstudio")} className="text-xs text-primary hover:underline">
+                    {t("storage.browse")}
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="truncate text-xs font-mono text-muted-foreground/70">{config?.lmstudio || "..."}</span>
+                {config && (
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${config.lmstudio_custom ? "bg-tag-trained/15 text-tag-trained" : "bg-muted text-muted-foreground"}`}>
+                    {config.lmstudio_custom ? t("storage.custom") : t("storage.default")}
+                  </span>
+                )}
+              </div>
+            </div>
+            {/* LM Studio API URL */}
+            <div className="px-4 py-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">{t("storage.lmstudioApiUrl")}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={lmstudioApiUrl}
+                  onChange={(e) => setLmstudioApiUrl(e.target.value)}
+                  onBlur={handleSaveLmstudioApiUrl}
+                  placeholder="http://localhost:1234"
+                  className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+                />
+                <button
+                  onClick={handleCheckLmstudioApi}
+                  disabled={lmstudioApiStatus === "checking"}
+                  className="shrink-0 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                >
+                  {lmstudioApiStatus === "checking" ? t("storage.lmstudioApiChecking") : t("storage.lmstudioApiCheck")}
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground/60">{t("storage.lmstudioApiDefault")}</p>
+              {lmstudioApiStatus === "ok" && (
+                <p className="text-xs text-success">{t("storage.lmstudioApiOk", { count: lmstudioApiModelCount })}</p>
+              )}
+              {lmstudioApiStatus === "error" && (
+                <p className="text-xs text-warning">{t("storage.lmstudioApiError")}</p>
+              )}
             </div>
           </div>
         </div>

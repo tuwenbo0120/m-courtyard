@@ -116,14 +116,16 @@
     "openFolder": "Open in Finder"
   },
   "mlx": {
-    "title": "Export as MLX Model",
-    "description": "Export as an MLX safetensors model. Can be loaded directly by LM Studio (best performance on Mac) or served via local API.",
-    "exportButton": "Export as MLX Model",
+    "title": "Export to LM Studio (MLX Format)",
+    "description": "Export as an MLX safetensors model, loadable directly in LM Studio (best performance on Mac) or as a local API server.",
+    "exportButton": "Export MLX Model (LM Studio)",
     "exporting": "Exporting...",
     "success": "MLX model exported successfully!",
     "successHint": "Model saved to:",
     "sizeHint": "Size: {{size}} MB",
     "openFolder": "Open Folder",
+    "lmstudioHint": "This folder can be loaded directly in LM Studio (MLX format — native performance on Mac).",
+    "openLmstudioFolder": "Open LM Studio Models Folder",
     "pipeline": {
       "check": "Prepare",
       "resolve": "Resolve Model",
