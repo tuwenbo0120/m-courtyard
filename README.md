@@ -156,4 +156,5 @@ Chinese supporters can also use [爱发电](https://afdian.com/a/mcourtyard) (We
 ## License
 
 M-Courtyard is open-source software licensed under the [AGPL-3.0 License](LICENSE).
+For brand name and logo usage, see [Brand and Logo Usage Notice](BRANDING.md).
 For commercial use or different licensing terms, please contact: `tuwenbo0112@gmail.com`

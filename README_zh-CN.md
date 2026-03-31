@@ -157,4 +157,5 @@ pnpm tauri build
 ## 许可证
 
 M-Courtyard 是一款基于 [AGPL-3.0 许可证](LICENSE) 的开源软件。
+品牌名称与 Logo 的使用说明见：[品牌与标识使用说明](BRANDING.md)。
 如需商业用途或其他许可条款，请联系：`tuwenbo0112@gmail.com`
