@@ -1,6 +1,6 @@
 [package]
 name = "courtyard"
-version = "0.5.2"
+version = "0.5.3"
 description = "AI Model Training Assistant - From raw text to fine-tuned local models"
 authors = ["tuwenbo"]
 edition = "2021"

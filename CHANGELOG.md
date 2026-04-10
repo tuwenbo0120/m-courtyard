@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-04-10
+
+### Fixed
+- **macOS Environment Setup Regression**: Removed unsupported `--system-certs` CLI arguments from `uv` environment setup and dependency installation paths while preserving system certificate usage through `UV_SYSTEM_CERTS=true` environment injection.
+- **Gemma 4 Local Model Detection / Training**: Improved local HuggingFace / ModelScope model scanning to recognize both standard hub-cache layouts and direct local model directories, and updated training selection to pass local model paths directly for scanned MLX models.
+- **Gemma 4 Ollama Export Compatibility**: Added a `gemma4` architecture fallback (`Gemma4ForConditionalGeneration`) when exporting fused models to Ollama.
+
+### Changed
+- **Online Model Lists**: Restored Qwen to the latest locally available `Qwen 3.5` series, added the Gemma 4 series, removed Phi, and refreshed HF / Ollama model links to match currently available local model sources.
+- **Training Environment Dependencies**: Upgraded environment setup to install `mlx-lm[train]>=0.31.2` so Gemma 4 training support is available in the app-managed Python environment.
+- **HF GLM Recommendations**: Updated the HuggingFace MLX GLM recommendations to current public GLM-5 quantized variants while keeping Ollama on non-cloud `glm-4.7-flash`.
+
 ## [0.5.2] - 2026-03-25
 
 ### Added

@@ -89,13 +89,13 @@
     "sourceModelscope": "ModelScope",
     "onlineBrands": {
       "qwen": "Qwen",
+      "gemma": "Gemma",
       "deepseek": "DeepSeek",
       "glm": "GLM",
       "llama": "Llama",
       "gptoss": "GPT-OSS",
       "kimi": "Kimi",
-      "mistral": "Mistral",
-      "phi": "Phi"
+      "mistral": "Mistral"
     },
     "modelscopeWarnInline": "当前下载源为 ModelScope，不支持以下 MLX 模型自动下载。请到",
     "settingsLink": "设置",

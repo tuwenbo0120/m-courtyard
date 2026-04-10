@@ -33,7 +33,6 @@ pub fn ensure_doc_deps() {
                 .args([
                     "pip", "install", "PyPDF2", "python-docx",
                     "--python", &executor.python_bin().to_string_lossy(),
-                    "--system-certs",
                 ])
                 .envs(build_uv_env())
                 .output()

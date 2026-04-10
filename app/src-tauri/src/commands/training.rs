@@ -554,22 +554,39 @@ fn scan_hf_style_cache(cache_dir: &std::path::Path, source: &str, models: &mut V
 
     for entry in entries.filter_map(|e| e.ok()) {
         let dir_name = entry.file_name().to_string_lossy().to_string();
-        if !dir_name.starts_with("models--") { continue; }
         let model_dir = entry.path();
-        let snapshots = model_dir.join("snapshots");
-        if !snapshots.exists() { continue; }
 
-        let latest_snapshot = std::fs::read_dir(&snapshots)
-            .ok()
-            .and_then(|rd| {
-                rd.filter_map(|e| e.ok())
-                    .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
-                    .max_by_key(|e| e.metadata().ok().and_then(|m| m.modified().ok()))
-            });
+        let detected = if dir_name.starts_with("models--") {
+            let snapshots = model_dir.join("snapshots");
+            if !snapshots.exists() { None } else {
+                let latest_snapshot = std::fs::read_dir(&snapshots)
+                    .ok()
+                    .and_then(|rd| {
+                        rd.filter_map(|e| e.ok())
+                            .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                            .max_by_key(|e| e.metadata().ok().and_then(|m| m.modified().ok()))
+                    });
 
-        if let Some(snap) = latest_snapshot {
-            let snap_path = snap.path();
-            let has_model_files = std::fs::read_dir(&snap_path).ok()
+                latest_snapshot.and_then(|snap| {
+                    let snap_path = snap.path();
+                    let has_model_files = std::fs::read_dir(&snap_path).ok()
+                        .map(|rd| rd.filter_map(|e| e.ok())
+                            .any(|e| {
+                                let n = e.file_name().to_string_lossy().to_string();
+                                n.ends_with(".safetensors") || n == "config.json"
+                            }))
+                        .unwrap_or(false);
+
+                    if !has_model_files { return None; }
+
+                    let model_id = dir_name.trim_start_matches("models--").replace("--", "/");
+                    let blobs_dir = model_dir.join("blobs");
+                    let size_mb = dir_size_recursive(&blobs_dir);
+                    Some((model_id, snap_path, size_mb))
+                })
+            }
+        } else {
+            let has_direct_model_files = std::fs::read_dir(&model_dir).ok()
                 .map(|rd| rd.filter_map(|e| e.ok())
                     .any(|e| {
                         let n = e.file_name().to_string_lossy().to_string();
@@ -577,14 +594,14 @@ fn scan_hf_style_cache(cache_dir: &std::path::Path, source: &str, models: &mut V
                     }))
                 .unwrap_or(false);
 
-            if !has_model_files { continue; }
+            if !has_direct_model_files {
+                None
+            } else {
+                Some((dir_name.clone(), model_dir.clone(), dir_size_recursive(&model_dir)))
+            }
+        };
 
-            let model_id = dir_name.trim_start_matches("models--").replace("--", "/");
-
-            // Calculate size from blobs/ directory (actual files, not symlinks)
-            let blobs_dir = model_dir.join("blobs");
-            let size_mb = dir_size_recursive(&blobs_dir);
-
+        if let Some((model_id, model_path, size_mb)) = detected {
             let name_lower = model_id.to_lowercase();
             let is_mlx = name_lower.contains("mlx")
                 || name_lower.contains("4bit")
@@ -593,7 +610,7 @@ fn scan_hf_style_cache(cache_dir: &std::path::Path, source: &str, models: &mut V
 
             models.push(LocalModelInfo {
                 name: model_id,
-                path: snap_path.to_string_lossy().to_string(),
+                path: model_path.to_string_lossy().to_string(),
                 size_mb,
                 is_mlx,
                 source: source.to_string(),

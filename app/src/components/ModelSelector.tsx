@@ -87,6 +87,16 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     moreUrl: "https://huggingface.co/models?search=mlx-community%2FQwen3.5",
   },
   {
+    brand: "gemma",
+    labelKey: "onlineBrands.gemma",
+    versions: [
+      { id: "mlx-community/gemma-4-31b-it-4bit", label: "Gemma 4 31B IT · 4-bit", size: "~20GB", descKey: "topRated", releasedAt: "2026-04-03" },
+      { id: "mlx-community/gemma-4-26b-a4b-it-4bit", label: "Gemma 4 26B-A4B IT · 4-bit", size: "~18GB", descKey: "higherQuality", releasedAt: "2026-04-03" },
+      { id: "mlx-community/gemma-4-e4b-it-4bit", label: "Gemma 4 E4B IT · 4-bit", size: "~9.6GB", descKey: "balanced", releasedAt: "2026-04-03" },
+    ],
+    moreUrl: "https://huggingface.co/models?search=mlx-community%2Fgemma-4",
+  },
+  {
     brand: "deepseek",
     labelKey: "onlineBrands.deepseek",
     versions: [
@@ -101,10 +111,10 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     brand: "glm",
     labelKey: "onlineBrands.glm",
     versions: [
-      { id: "mlx-community/GLM-4.7-Flash-4bit", label: "GLM 4.7 Flash · 4-bit", size: "~19GB", descKey: "topRated", releasedAt: "2026-01-19" },
-      { id: "mlx-community/GLM-4.7-Flash-8bit", label: "GLM 4.7 Flash · 8-bit", size: "~32GB", descKey: "higherQuality", releasedAt: "2026-01-19" },
+      { id: "mlx-community/GLM-5-4bit", label: "GLM 5 · 4-bit", size: "744B params", descKey: "topRated", releasedAt: "2026-02-12" },
+      { id: "mlx-community/GLM-5-8bit-MXFP8", label: "GLM 5 · 8-bit MXFP8", size: "744B params", descKey: "higherQuality", releasedAt: "2026-02-12" },
     ],
-    moreUrl: "https://huggingface.co/models?search=mlx-community%2FGLM-4.7-Flash",
+    moreUrl: "https://huggingface.co/models?search=mlx-community%2FGLM-5",
   },
   {
     brand: "llama",
@@ -134,16 +144,6 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     ],
     moreUrl: "https://huggingface.co/models?search=mlx-community%2FMistral",
   },
-  {
-    brand: "phi",
-    labelKey: "onlineBrands.phi",
-    versions: [
-      { id: "mlx-community/Phi-3.5-mini-instruct-4bit", label: "Phi 3.5 Mini · 4-bit", size: "~2.6GB", descKey: "lightweight", releasedAt: "2024-08-20" },
-      { id: "mlx-community/Phi-3-medium-128k-instruct-4bit", label: "Phi 3 Medium 14B · 4-bit", size: "~7.8GB", descKey: "higherQuality", releasedAt: "2024-05-21" },
-      { id: "mlx-community/Phi-3-mini-4k-instruct-4bit", label: "Phi 3 Mini · 4-bit", size: "~2.2GB", descKey: "lightweight", releasedAt: "2024-04-23" },
-    ],
-    moreUrl: "https://huggingface.co/models?search=mlx-community%2FPhi-3",
-  },
 ]);
 
 const OLLAMA_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
@@ -156,6 +156,16 @@ const OLLAMA_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease(
       { id: "qwen3.5:122b", label: "Qwen 3.5 122B", size: "~81GB", descKey: "popularGeneral", releasedAt: "2026-02-25" },
     ],
     moreUrl: "https://ollama.com/library/qwen3.5",
+  },
+  {
+    brand: "gemma",
+    labelKey: "onlineBrands.gemma",
+    versions: [
+      { id: "gemma4:31b", label: "Gemma 4 31B", size: "~20GB", descKey: "topRated", releasedAt: "2026-04-03" },
+      { id: "gemma4:26b", label: "Gemma 4 26B", size: "~18GB", descKey: "higherQuality", releasedAt: "2026-04-03" },
+      { id: "gemma4:e4b", label: "Gemma 4 E4B", size: "~9.6GB", descKey: "balanced", releasedAt: "2026-04-03" },
+    ],
+    moreUrl: "https://ollama.com/library/gemma4",
   },
   {
     brand: "deepseek",
@@ -203,16 +213,6 @@ const OLLAMA_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease(
       { id: "mistral:latest", label: "Mistral 7B", size: "~4.1GB", descKey: "popularGeneral", releasedAt: "2023-12-10" },
     ],
     moreUrl: "https://ollama.com/search?q=mistral",
-  },
-  {
-    brand: "phi",
-    labelKey: "onlineBrands.phi",
-    versions: [
-      { id: "phi4-reasoning:14b", label: "Phi-4 Reasoning 14B", size: "~9GB", descKey: "reasoning", releasedAt: "2025-05-01" },
-      { id: "phi4:14b", label: "Phi-4 14B", size: "~9GB", descKey: "higherQuality", releasedAt: "2024-12-01" },
-      { id: "phi4-mini:3.8b", label: "Phi-4 Mini 3.8B", size: "~2.4GB", descKey: "lightweight", releasedAt: "2024-12-01" },
-    ],
-    moreUrl: "https://ollama.com/search?q=phi",
   },
 ]);
 
@@ -535,6 +535,8 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
       const adapter = adapters.find((a) => a.path === m.path);
       if (adapter && onSelectAdapter) onSelectAdapter(adapter);
       onSelect(m.path);
+    } else if (mode === "training" && (m.source === "huggingface" || m.source === "modelscope")) {
+      onSelect(m.path, true);
     } else {
       onSelect(m.name);  // No isLocalPath - scanned models are already validated
     }

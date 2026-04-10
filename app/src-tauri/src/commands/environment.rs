@@ -102,7 +102,7 @@ pub async fn setup_environment(app: tauri::AppHandle) -> Result<(), String> {
     }));
 
     let venv_result = tokio::process::Command::new(&uv_path)
-        .args(["venv", &venv_dir.to_string_lossy(), "--python", "3.11", "--system-certs"])
+        .args(["venv", &venv_dir.to_string_lossy(), "--python", "3.11"])
         .envs(build_uv_env())
         .output()
         .await
@@ -121,9 +121,8 @@ pub async fn setup_environment(app: tauri::AppHandle) -> Result<(), String> {
     // Step 2: Install mlx-lm + document parsing deps (PyPDF2, python-docx)
     let pip_result = tokio::process::Command::new(&uv_path)
         .args([
-            "pip", "install", "mlx-lm", "PyPDF2", "python-docx",
+            "pip", "install", "mlx-lm[train]>=0.31.2", "PyPDF2", "python-docx",
             "--python", &executor.python_bin().to_string_lossy(),
-            "--system-certs",
         ])
         .envs(build_uv_env())
         .output()

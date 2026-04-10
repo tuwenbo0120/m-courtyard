@@ -194,6 +194,7 @@ def fuse_and_dequantize_direct(model_path, adapter_path, output_path):
             "mistral": "MistralForCausalLM",
             "gemma": "GemmaForCausalLM",
             "gemma2": "Gemma2ForCausalLM",
+            "gemma4": "Gemma4ForConditionalGeneration",
             "phi3": "Phi3ForCausalLM",
         }
         mt = config.get("model_type", "")

@@ -68,7 +68,7 @@
     "httpProxyPlaceholder": "e.g. http://proxy.corp.com:8080",
     "httpsProxy": "HTTPS Proxy",
     "httpsProxyPlaceholder": "e.g. http://proxy.corp.com:8080",
-    "sslCertFile": "SSL Certificate File (PEM)",
+    "sslCertFile": "SSL Certificate File",
     "sslCertFilePlaceholder": "Path to CA certificate bundle, e.g. /etc/ssl/certs/ca-certificates.crt",
     "sslCertDir": "SSL Certificate Directory",
     "sslCertDirPlaceholder": "Path to directory containing CA certificates",
@@ -77,7 +77,7 @@
     "save": "Save",
     "browseFile": "Browse",
     "shellEnvHint": "Tip: Proxy variables from your shell profile (~/.zshrc) are automatically inherited when not configured here.",
-    "systemCertsHint": "System certificate store is always enabled for uv commands (--system-certs)."
+    "systemCertsHint": "System certificate store is always enabled via the UV_SYSTEM_CERTS environment variable."
   },
   "about": {
     "title": "About",
