@@ -116,7 +116,7 @@ function analyzeContentForModes(samples: RawFileSample[]): { status: ModeStatusM
     if (avgLineLen < 30 && lines.length > 5) structuredScore += 1;
 
     // JSON-like content
-    if (/^\s*[\[{]/.test(text) && /[\]}]\s*$/.test(text.trim())) structuredScore += 3;
+    if (/^\s*[[{]/.test(text) && /[}\]]\s*$/.test(text.trim())) structuredScore += 3;
     // Key-value patterns
     if ((text.match(/[""]\s*:\s*/g) || []).length > 3) structuredScore += 2;
 

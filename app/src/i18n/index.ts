@@ -53,7 +53,17 @@ i18n
     resources,
     fallbackLng: "en",
     defaultNS: "common",
-    ns: ["common", "project", "nav", "training", "dataPrep", "settings", "testing", "export", "notification"],
+    ns: [
+      "common",
+      "project",
+      "nav",
+      "training",
+      "dataPrep",
+      "settings",
+      "testing",
+      "export",
+      "notification",
+    ],
     interpolation: {
       escapeValue: false,
     },

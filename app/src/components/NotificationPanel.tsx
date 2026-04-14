@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2, CheckCircle2, AlertCircle, BellRing, History, Volume2 } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  BellRing,
+  History,
+  Volume2,
+} from "lucide-react";
 import {
   useNotificationStore,
   DEFAULT_NATIVE_NOTIFICATION_SOUND,
@@ -26,47 +34,107 @@ interface FieldDef {
 const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
   webhook: {
     label: "Webhook",
-    fields: [{ key: "url", labelKey: "fieldUrl", placeholder: "https://example.com/hook" }],
+    fields: [
+      {
+        key: "url",
+        labelKey: "fieldUrl",
+        placeholder: "https://example.com/hook",
+      },
+    ],
   },
   slack: {
     label: "Slack",
-    fields: [{ key: "url", labelKey: "fieldUrl", placeholder: "https://hooks.slack.com/services/..." }],
+    fields: [
+      {
+        key: "url",
+        labelKey: "fieldUrl",
+        placeholder: "https://hooks.slack.com/services/...",
+      },
+    ],
   },
   discord: {
     label: "Discord",
-    fields: [{ key: "url", labelKey: "fieldUrl", placeholder: "https://discord.com/api/webhooks/..." }],
+    fields: [
+      {
+        key: "url",
+        labelKey: "fieldUrl",
+        placeholder: "https://discord.com/api/webhooks/...",
+      },
+    ],
   },
   telegram: {
     label: "Telegram",
     fields: [
-      { key: "token", labelKey: "fieldBotToken", placeholder: "123456:ABC-DEF...", password: true },
+      {
+        key: "token",
+        labelKey: "fieldBotToken",
+        placeholder: "123456:ABC-DEF...",
+        password: true,
+      },
       { key: "chat_id", labelKey: "fieldChatId", placeholder: "-100123456789" },
     ],
   },
   feishu: {
     label: "飞书",
-    fields: [{ key: "url", labelKey: "fieldUrl", placeholder: "https://open.feishu.cn/open-apis/bot/v2/hook/..." }],
+    fields: [
+      {
+        key: "url",
+        labelKey: "fieldUrl",
+        placeholder: "https://open.feishu.cn/open-apis/bot/v2/hook/...",
+      },
+    ],
   },
   wecom: {
     label: "企业微信",
-    fields: [{ key: "url", labelKey: "fieldUrl", placeholder: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..." }],
+    fields: [
+      {
+        key: "url",
+        labelKey: "fieldUrl",
+        placeholder: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...",
+      },
+    ],
   },
   ntfy: {
     label: "ntfy",
-    fields: [{ key: "url", labelKey: "fieldTopicUrl", placeholder: "https://ntfy.sh/my-topic" }],
+    fields: [
+      {
+        key: "url",
+        labelKey: "fieldTopicUrl",
+        placeholder: "https://ntfy.sh/my-topic",
+      },
+    ],
   },
   bark: {
     label: "Bark",
     fields: [
-      { key: "url", labelKey: "fieldServerUrl", placeholder: "https://api.day.app" },
-      { key: "key", labelKey: "fieldDeviceKey", placeholder: "your-device-key", password: true },
+      {
+        key: "url",
+        labelKey: "fieldServerUrl",
+        placeholder: "https://api.day.app",
+      },
+      {
+        key: "key",
+        labelKey: "fieldDeviceKey",
+        placeholder: "your-device-key",
+        password: true,
+      },
     ],
   },
   pushover: {
     label: "Pushover",
     fields: [
-      { key: "token", labelKey: "fieldApiToken", placeholder: "azGDURgv...", password: true },
-      { key: "user_key", labelKey: "fieldUserKey", placeholder: "uQiRzpo4...", password: true },
+      {
+        key: "token",
+        labelKey: "fieldApiToken",
+        placeholder: "azGDURgv...",
+        password: true,
+      },
+      {
+        key: "user_key",
+        labelKey: "fieldUserKey",
+        placeholder: "uQiRzpo4...",
+        password: true,
+      },
     ],
   },
 };
@@ -79,7 +147,13 @@ function generateId() {
 
 // ─── Pill toggle switch ───────────────────────────────────────────────────────
 
-function PillSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+function PillSwitch({
+  enabled,
+  onToggle,
+}: {
+  enabled: boolean;
+  onToggle: () => void;
+}) {
   return (
     <button
       type="button"
@@ -127,11 +201,21 @@ function ChannelForm({
     setForm((f) => ({ ...f, [key]: value }));
 
   const setType = (type: ChannelType) =>
-    setForm((f) => ({ ...f, type, url: "", token: "", chat_id: "", user_key: "", key: "" }));
+    setForm((f) => ({
+      ...f,
+      type,
+      url: "",
+      token: "",
+      chat_id: "",
+      user_key: "",
+      key: "",
+    }));
 
   const isValid = () => {
     if (!form.name?.trim()) return false;
-    return meta.fields.every((f) => (form[f.key] as string | undefined)?.trim());
+    return meta.fields.every((f) =>
+      (form[f.key] as string | undefined)?.trim(),
+    );
   };
 
   const handleTest = async () => {
@@ -140,9 +224,19 @@ function ChannelForm({
     try {
       const { dispatchToChannel } = await import("@/stores/notificationStore");
       await dispatchToChannel(
-        { id: "___test___", type: form.type as ChannelType, name: form.name!, enabled: true,
-          url: form.url, token: form.token, chat_id: form.chat_id, user_key: form.user_key, key: form.key },
-        t("testTitle"), t("testBody")
+        {
+          id: "___test___",
+          type: form.type as ChannelType,
+          name: form.name!,
+          enabled: true,
+          url: form.url,
+          token: form.token,
+          chat_id: form.chat_id,
+          user_key: form.user_key,
+          key: form.key,
+        },
+        t("testTitle"),
+        t("testBody"),
       );
       setTestState("ok");
     } catch {
@@ -151,13 +245,16 @@ function ChannelForm({
     setTimeout(() => setTestState("idle"), 3000);
   };
 
-  const inputCls = "w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50";
+  const inputCls =
+    "w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50";
 
   return (
     <div className="rounded-lg border border-border bg-card/50 p-4 space-y-4">
       {/* Channel type — button grid */}
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">{t("fieldType")}</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          {t("fieldType")}
+        </p>
         <div className="grid grid-cols-3 gap-1.5">
           {CHANNEL_TYPES.map((ct) => (
             <button
@@ -178,7 +275,9 @@ function ChannelForm({
 
       {/* Name */}
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">{t("fieldName")}</label>
+        <label className="text-xs font-medium text-muted-foreground">
+          {t("fieldName")}
+        </label>
         <input
           type="text"
           value={form.name ?? ""}
@@ -191,7 +290,9 @@ function ChannelForm({
       {/* Dynamic fields */}
       {meta.fields.map((f) => (
         <div key={String(f.key)} className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">{t(f.labelKey)}</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            {t(f.labelKey)}
+          </label>
           <input
             type={f.password ? "password" : "text"}
             value={(form[f.key] as string) ?? ""}
@@ -206,7 +307,12 @@ function ChannelForm({
       <div className="flex items-center gap-2 pt-1">
         <button
           type="button"
-          onClick={() => onSave({ ...form, id: form.id ?? generateId() } as NotificationChannel)}
+          onClick={() =>
+            onSave({
+              ...form,
+              id: form.id ?? generateId(),
+            } as NotificationChannel)
+          }
           disabled={!isValid()}
           className="flex-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors"
         >
@@ -218,9 +324,15 @@ function ChannelForm({
           disabled={!isValid() || testState === "sending"}
           className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent disabled:opacity-40 transition-colors"
         >
-          {testState === "sending" && <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />}
-          {testState === "ok" && <CheckCircle2 size={12} className="text-success" />}
-          {testState === "error" && <AlertCircle size={12} className="text-destructive" />}
+          {testState === "sending" && (
+            <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+          )}
+          {testState === "ok" && (
+            <CheckCircle2 size={12} className="text-success" />
+          )}
+          {testState === "error" && (
+            <AlertCircle size={12} className="text-destructive" />
+          )}
           {t("test")}
         </button>
         <button
@@ -238,7 +350,10 @@ function ChannelForm({
 // ─── Channel row ──────────────────────────────────────────────────────────────
 
 function ChannelRow({
-  channel, onToggle, onEdit, onDelete,
+  channel,
+  onToggle,
+  onEdit,
+  onDelete,
 }: {
   channel: NotificationChannel;
   onToggle: () => void;
@@ -250,8 +365,12 @@ function ChannelRow({
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border px-4 py-3">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">{channel.name}</p>
-        <p className="text-xs text-muted-foreground">{meta?.label ?? channel.type}</p>
+        <p className="text-sm font-medium text-foreground truncate">
+          {channel.name}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {meta?.label ?? channel.type}
+        </p>
       </div>
       <PillSwitch enabled={channel.enabled} onToggle={onToggle} />
       <button
@@ -284,7 +403,9 @@ const EVENT_KEYS: (keyof NotificationEvents)[] = [
 ];
 
 function formatHistoryTime(value: string) {
-  const normalized = value.includes("T") ? value : `${value.replace(" ", "T")}Z`;
+  const normalized = value.includes("T")
+    ? value
+    : `${value.replace(" ", "T")}Z`;
   const parsed = new Date(normalized);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString();
@@ -311,7 +432,10 @@ export function NotificationSettings() {
   const [requestingPermission, setRequestingPermission] = useState(false);
 
   const toggleEvent = (key: keyof NotificationEvents) =>
-    save({ ...config, events: { ...config.events, [key]: !config.events[key] } });
+    save({
+      ...config,
+      events: { ...config.events, [key]: !config.events[key] },
+    });
 
   const saveChannel = (ch: NotificationChannel) => {
     const channels = config.channels.find((c) => c.id === ch.id)
@@ -326,7 +450,12 @@ export function NotificationSettings() {
     save({ ...config, channels: config.channels.filter((c) => c.id !== id) });
 
   const toggleChannel = (id: string) =>
-    save({ ...config, channels: config.channels.map((c) => c.id === id ? { ...c, enabled: !c.enabled } : c) });
+    save({
+      ...config,
+      channels: config.channels.map((c) =>
+        c.id === id ? { ...c, enabled: !c.enabled } : c,
+      ),
+    });
 
   return (
     <div className="space-y-6">
@@ -339,9 +468,13 @@ export function NotificationSettings() {
             <div className="flex items-center gap-3 min-w-0">
               <BellRing size={16} className="shrink-0 text-muted-foreground" />
               <div className="min-w-0">
-                <p className="text-sm text-foreground">{t("nativePermission")}</p>
+                <p className="text-sm text-foreground">
+                  {t("nativePermission")}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {t(`nativePermission_${permission === "unsupported" ? "unsupported" : permission}`)}
+                  {t(
+                    `nativePermission_${permission === "unsupported" ? "unsupported" : permission}`,
+                  )}
                 </p>
               </div>
             </div>
@@ -368,7 +501,9 @@ export function NotificationSettings() {
               <Volume2 size={16} className="shrink-0 text-muted-foreground" />
               <div className="min-w-0">
                 <p className="text-sm text-foreground">{t("nativeSound")}</p>
-                <p className="text-xs text-muted-foreground">{t("nativeSoundHint")}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("nativeSoundHint")}
+                </p>
               </div>
             </div>
             <span className="shrink-0 text-xs font-medium text-foreground">
@@ -390,9 +525,17 @@ export function NotificationSettings() {
         </p>
         <div className="rounded-lg border border-border divide-y divide-border">
           {EVENT_KEYS.map((key) => (
-            <div key={key} className="flex items-center justify-between px-4 py-3">
-              <span className="text-sm text-foreground">{t(`event_${key}`)}</span>
-              <PillSwitch enabled={config.events[key]} onToggle={() => toggleEvent(key)} />
+            <div
+              key={key}
+              className="flex items-center justify-between px-4 py-3"
+            >
+              <span className="text-sm text-foreground">
+                {t(`event_${key}`)}
+              </span>
+              <PillSwitch
+                enabled={config.events[key]}
+                onToggle={() => toggleEvent(key)}
+              />
             </div>
           ))}
         </div>
@@ -407,7 +550,10 @@ export function NotificationSettings() {
           {!addingNew && (
             <button
               type="button"
-              onClick={() => { setAddingNew(true); setEditingId(null); }}
+              onClick={() => {
+                setAddingNew(true);
+                setEditingId(null);
+              }}
               className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
             >
               <Plus size={12} />
@@ -417,13 +563,20 @@ export function NotificationSettings() {
         </div>
 
         {addingNew && (
-          <ChannelForm channel={{}} onSave={saveChannel} onCancel={() => setAddingNew(false)} />
+          <ChannelForm
+            channel={{}}
+            onSave={saveChannel}
+            onCancel={() => setAddingNew(false)}
+          />
         )}
 
         {config.channels.length === 0 && !addingNew && (
           <button
             type="button"
-            onClick={() => { setAddingNew(true); setEditingId(null); }}
+            onClick={() => {
+              setAddingNew(true);
+              setEditingId(null);
+            }}
             className="w-full rounded-lg border border-dashed border-border bg-card/30 px-4 py-8 text-center text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
           >
             {t("noChannels")}
@@ -433,16 +586,24 @@ export function NotificationSettings() {
         <div className="space-y-2">
           {config.channels.map((ch) =>
             editingId === ch.id ? (
-              <ChannelForm key={ch.id} channel={ch} onSave={saveChannel} onCancel={() => setEditingId(null)} />
+              <ChannelForm
+                key={ch.id}
+                channel={ch}
+                onSave={saveChannel}
+                onCancel={() => setEditingId(null)}
+              />
             ) : (
               <ChannelRow
                 key={ch.id}
                 channel={ch}
                 onToggle={() => toggleChannel(ch.id)}
-                onEdit={() => { setEditingId(ch.id); setAddingNew(false); }}
+                onEdit={() => {
+                  setEditingId(ch.id);
+                  setAddingNew(false);
+                }}
                 onDelete={() => deleteChannel(ch.id)}
               />
-            )
+            ),
           )}
         </div>
       </div>
@@ -485,22 +646,35 @@ export function NotificationSettings() {
               <div
                 key={item.id}
                 className={`rounded-lg border px-4 py-3 ${
-                  item.read_at ? "border-border" : "border-primary/30 bg-primary/5"
+                  item.read_at
+                    ? "border-border"
+                    : "border-primary/30 bg-primary/5"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      {!item.read_at && <span className="h-2 w-2 rounded-full bg-primary" />}
-                      <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+                      {!item.read_at && (
+                        <span className="h-2 w-2 rounded-full bg-primary" />
+                      )}
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {item.title}
+                      </p>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {t(`event_${item.event_key}`, { defaultValue: item.event_key })} · {formatHistoryTime(item.created_at)}
+                      {t(`event_${item.event_key}`, {
+                        defaultValue: item.event_key,
+                      })}{" "}
+                      · {formatHistoryTime(item.created_at)}
                     </p>
-                    <p className="mt-2 whitespace-pre-wrap break-words text-sm text-foreground/90">{item.body}</p>
+                    <p className="mt-2 whitespace-pre-wrap break-words text-sm text-foreground/90">
+                      {item.body}
+                    </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                       <span className="rounded-full border border-border px-2 py-0.5">
-                        {item.native_delivered ? t("historyDelivered") : t("historyOnlyInbox")}
+                        {item.native_delivered
+                          ? t("historyDelivered")
+                          : t("historyOnlyInbox")}
                       </span>
                       {item.sound && (
                         <span className="rounded-full border border-border px-2 py-0.5">

@@ -13,7 +13,13 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\""
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.8",
@@ -35,15 +41,25 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/cli": "^2",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
     "@types/node": "^25.2.2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "typescript-eslint": "^8.0.0",
+    "eslint-plugin-react-refresh": "^0.4.0",
+    "jsdom": "^26.0.0",
+    "prettier": "^3.0.0",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vitest": "^3.0.0"
   },
   "packageManager": "pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264"
 }

@@ -1,0 +1,21 @@
+{
+  "name": "m-courtyard",
+  "version": "0.5.4",
+  "private": true,
+  "description": "Zero-code local LLM fine-tuning & data prep on Apple Silicon",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mcourtyard/m-courtyard.git"
+  },
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/Mcourtyard/m-courtyard",
+  "scripts": {
+    "dev": "cd app && pnpm tauri dev",
+    "build": "cd app && pnpm tauri build",
+    "build:frontend": "cd app && pnpm run build",
+    "test": "cd app && pnpm run test",
+    "test:run": "cd app && pnpm run test:run",
+    "typecheck": "cd app && tsc --noEmit"
+  },
+  "packageManager": "pnpm@10.28.2"
+}

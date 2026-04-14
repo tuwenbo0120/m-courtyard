@@ -39,7 +39,9 @@ export function StepProgress({ subSteps }: StepProgressProps) {
         {currentIdx > 0 && (
           <div
             className="absolute left-0 top-1/2 z-0 h-px -translate-y-1/2 bg-primary/50"
-            style={{ width: `${(currentIdx / (MAIN_STEPS.length - 1)) * 100}%` }}
+            style={{
+              width: `${(currentIdx / (MAIN_STEPS.length - 1)) * 100}%`,
+            }}
           />
         )}
         <div className="relative flex w-full justify-between">
@@ -72,9 +74,12 @@ export function StepProgress({ subSteps }: StepProgressProps) {
           <div className="absolute left-0 right-0 top-1/2 z-0 h-px -translate-y-1/2 bg-border/50" />
           {/* Progress line */}
           {(() => {
-            const lastDone = subSteps.reduce((acc, s, i) => (s.done || s.active ? i : acc), -1);
+            const lastDone = subSteps.reduce(
+              (acc, s, i) => (s.done || s.active ? i : acc),
+              -1,
+            );
             if (lastDone < 0) return null;
-            const pct = ((lastDone) / (subSteps.length - 1)) * 100;
+            const pct = (lastDone / (subSteps.length - 1)) * 100;
             return (
               <div
                 className="absolute left-0 top-1/2 z-0 h-px -translate-y-1/2 bg-success/40"

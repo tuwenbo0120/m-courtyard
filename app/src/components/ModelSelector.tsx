@@ -4,8 +4,18 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useNavigate } from "react-router-dom";
 import {
-  ChevronDown, ChevronRight, CheckCircle2, RefreshCw,
-  FolderOpen, Globe, Download, HardDrive, Settings, ExternalLink, Wifi, WifiOff,
+  ChevronDown,
+  ChevronRight,
+  CheckCircle2,
+  RefreshCw,
+  FolderOpen,
+  Globe,
+  Download,
+  HardDrive,
+  Settings,
+  ExternalLink,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 
 export interface LocalModelInfo {
@@ -31,7 +41,9 @@ interface OnlineModelBrandGroup {
   moreUrl?: string;
 }
 
-function sortOnlineGroupsByRelease(groups: OnlineModelBrandGroup[]): OnlineModelBrandGroup[] {
+function sortOnlineGroupsByRelease(
+  groups: OnlineModelBrandGroup[],
+): OnlineModelBrandGroup[] {
   return groups.map((group) => ({
     ...group,
     versions: [...group.versions].sort((a, b) => {
@@ -81,8 +93,20 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     brand: "qwen",
     labelKey: "onlineBrands.qwen",
     versions: [
-      { id: "mlx-community/Qwen3.5-35B-A3B-4bit", label: "Qwen 3.5 35B-A3B · 4-bit", size: "~24GB", descKey: "topRated", releasedAt: "2026-02-24" },
-      { id: "mlx-community/Qwen3.5-27B-4bit", label: "Qwen 3.5 27B · 4-bit", size: "~17GB", descKey: "higherQuality", releasedAt: "2026-02-24" },
+      {
+        id: "mlx-community/Qwen3.5-35B-A3B-4bit",
+        label: "Qwen 3.5 35B-A3B · 4-bit",
+        size: "~24GB",
+        descKey: "topRated",
+        releasedAt: "2026-02-24",
+      },
+      {
+        id: "mlx-community/Qwen3.5-27B-4bit",
+        label: "Qwen 3.5 27B · 4-bit",
+        size: "~17GB",
+        descKey: "higherQuality",
+        releasedAt: "2026-02-24",
+      },
     ],
     moreUrl: "https://huggingface.co/models?search=mlx-community%2FQwen3.5",
   },
@@ -90,9 +114,27 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     brand: "gemma",
     labelKey: "onlineBrands.gemma",
     versions: [
-      { id: "mlx-community/gemma-4-31b-it-4bit", label: "Gemma 4 31B IT · 4-bit", size: "~20GB", descKey: "topRated", releasedAt: "2026-04-03" },
-      { id: "mlx-community/gemma-4-26b-a4b-it-4bit", label: "Gemma 4 26B-A4B IT · 4-bit", size: "~18GB", descKey: "higherQuality", releasedAt: "2026-04-03" },
-      { id: "mlx-community/gemma-4-e4b-it-4bit", label: "Gemma 4 E4B IT · 4-bit", size: "~9.6GB", descKey: "balanced", releasedAt: "2026-04-03" },
+      {
+        id: "mlx-community/gemma-4-31b-it-4bit",
+        label: "Gemma 4 31B IT · 4-bit",
+        size: "~20GB",
+        descKey: "topRated",
+        releasedAt: "2026-04-03",
+      },
+      {
+        id: "mlx-community/gemma-4-26b-a4b-it-4bit",
+        label: "Gemma 4 26B-A4B IT · 4-bit",
+        size: "~18GB",
+        descKey: "higherQuality",
+        releasedAt: "2026-04-03",
+      },
+      {
+        id: "mlx-community/gemma-4-e4b-it-4bit",
+        label: "Gemma 4 E4B IT · 4-bit",
+        size: "~9.6GB",
+        descKey: "balanced",
+        releasedAt: "2026-04-03",
+      },
     ],
     moreUrl: "https://huggingface.co/models?search=mlx-community%2Fgemma-4",
   },
@@ -100,10 +142,34 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     brand: "deepseek",
     labelKey: "onlineBrands.deepseek",
     versions: [
-      { id: "mlx-community/DeepSeek-R1-0528-Qwen3-8B-4bit", label: "DeepSeek R1 8B (0528) · 4-bit", size: "~5GB", descKey: "topRated", releasedAt: "2025-05-28" },
-      { id: "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit", label: "DeepSeek R1 14B · 4-bit", size: "~9GB", descKey: "reasoningGeneral", releasedAt: "2025-01-20" },
-      { id: "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit", label: "DeepSeek R1 7B · 4-bit", size: "~4.7GB", descKey: "reasoning", releasedAt: "2025-01-20" },
-      { id: "mlx-community/DeepSeek-R1-Distill-Qwen-1.5B-4bit", label: "DeepSeek R1 1.5B · 4-bit", size: "~1GB", descKey: "reasoningLight", releasedAt: "2025-01-20" },
+      {
+        id: "mlx-community/DeepSeek-R1-0528-Qwen3-8B-4bit",
+        label: "DeepSeek R1 8B (0528) · 4-bit",
+        size: "~5GB",
+        descKey: "topRated",
+        releasedAt: "2025-05-28",
+      },
+      {
+        id: "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit",
+        label: "DeepSeek R1 14B · 4-bit",
+        size: "~9GB",
+        descKey: "reasoningGeneral",
+        releasedAt: "2025-01-20",
+      },
+      {
+        id: "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit",
+        label: "DeepSeek R1 7B · 4-bit",
+        size: "~4.7GB",
+        descKey: "reasoning",
+        releasedAt: "2025-01-20",
+      },
+      {
+        id: "mlx-community/DeepSeek-R1-Distill-Qwen-1.5B-4bit",
+        label: "DeepSeek R1 1.5B · 4-bit",
+        size: "~1GB",
+        descKey: "reasoningLight",
+        releasedAt: "2025-01-20",
+      },
     ],
     moreUrl: "https://huggingface.co/models?search=mlx-community%2FDeepSeek-R1",
   },
@@ -111,8 +177,20 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     brand: "glm",
     labelKey: "onlineBrands.glm",
     versions: [
-      { id: "mlx-community/GLM-5-4bit", label: "GLM 5 · 4-bit", size: "744B params", descKey: "topRated", releasedAt: "2026-02-12" },
-      { id: "mlx-community/GLM-5-8bit-MXFP8", label: "GLM 5 · 8-bit MXFP8", size: "744B params", descKey: "higherQuality", releasedAt: "2026-02-12" },
+      {
+        id: "mlx-community/GLM-5-4bit",
+        label: "GLM 5 · 4-bit",
+        size: "744B params",
+        descKey: "topRated",
+        releasedAt: "2026-02-12",
+      },
+      {
+        id: "mlx-community/GLM-5-8bit-MXFP8",
+        label: "GLM 5 · 8-bit MXFP8",
+        size: "744B params",
+        descKey: "higherQuality",
+        releasedAt: "2026-02-12",
+      },
     ],
     moreUrl: "https://huggingface.co/models?search=mlx-community%2FGLM-5",
   },
@@ -120,8 +198,20 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     brand: "llama",
     labelKey: "onlineBrands.llama",
     versions: [
-      { id: "mlx-community/Llama-4-Scout-17B-16E-Instruct-4bit", label: "Llama 4 Scout 17B · 4-bit", size: "~67GB", descKey: "topRated", releasedAt: "2025-04-05" },
-      { id: "mlx-community/meta-llama-Llama-4-Scout-17B-16E-4bit", label: "Llama 4 Scout 17B · 4-bit (Base)", size: "~67GB", descKey: "higherQuality", releasedAt: "2025-04-05" },
+      {
+        id: "mlx-community/Llama-4-Scout-17B-16E-Instruct-4bit",
+        label: "Llama 4 Scout 17B · 4-bit",
+        size: "~67GB",
+        descKey: "topRated",
+        releasedAt: "2025-04-05",
+      },
+      {
+        id: "mlx-community/meta-llama-Llama-4-Scout-17B-16E-4bit",
+        label: "Llama 4 Scout 17B · 4-bit (Base)",
+        size: "~67GB",
+        descKey: "higherQuality",
+        releasedAt: "2025-04-05",
+      },
     ],
     moreUrl: "https://huggingface.co/models?search=mlx-community%2FLlama-4",
   },
@@ -129,8 +219,20 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     brand: "gptoss",
     labelKey: "onlineBrands.gptoss",
     versions: [
-      { id: "mlx-community/gpt-oss-20b-MXFP4-Q8", label: "gpt-oss 20B · MXFP4 Q8", size: "~22GB", descKey: "topRated", releasedAt: "2025-08-10" },
-      { id: "mlx-community/gpt-oss-20b-MXFP4-Q4", label: "gpt-oss 20B · MXFP4 Q4", size: "~13GB", descKey: "openaiFamily", releasedAt: "2025-08-10" },
+      {
+        id: "mlx-community/gpt-oss-20b-MXFP4-Q8",
+        label: "gpt-oss 20B · MXFP4 Q8",
+        size: "~22GB",
+        descKey: "topRated",
+        releasedAt: "2025-08-10",
+      },
+      {
+        id: "mlx-community/gpt-oss-20b-MXFP4-Q4",
+        label: "gpt-oss 20B · MXFP4 Q4",
+        size: "~13GB",
+        descKey: "openaiFamily",
+        releasedAt: "2025-08-10",
+      },
     ],
     moreUrl: "https://huggingface.co/models?search=mlx-community%2Fgpt-oss",
   },
@@ -138,83 +240,211 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     brand: "mistral",
     labelKey: "onlineBrands.mistral",
     versions: [
-      { id: "mlx-community/mistralai_Ministral-3-14B-Instruct-2512-MLX-MXFP4", label: "Ministral 3 14B · MXFP4", size: "~8GB", descKey: "higherQuality", releasedAt: "2025-12-30" },
-      { id: "mlx-community/mistralai_Devstral-Small-2-24B-Instruct-2512-MLX-8Bit", label: "Devstral Small 24B · 8-bit", size: "~24GB", descKey: "codeStrong", releasedAt: "2025-12-14" },
-      { id: "mlx-community/Mistral-7B-Instruct-v0.2-4-bit", label: "Mistral 7B v0.2 · 4-bit", size: "~4.1GB", descKey: "popularGeneral", releasedAt: "2023-12-22" },
+      {
+        id: "mlx-community/mistralai_Ministral-3-14B-Instruct-2512-MLX-MXFP4",
+        label: "Ministral 3 14B · MXFP4",
+        size: "~8GB",
+        descKey: "higherQuality",
+        releasedAt: "2025-12-30",
+      },
+      {
+        id: "mlx-community/mistralai_Devstral-Small-2-24B-Instruct-2512-MLX-8Bit",
+        label: "Devstral Small 24B · 8-bit",
+        size: "~24GB",
+        descKey: "codeStrong",
+        releasedAt: "2025-12-14",
+      },
+      {
+        id: "mlx-community/Mistral-7B-Instruct-v0.2-4-bit",
+        label: "Mistral 7B v0.2 · 4-bit",
+        size: "~4.1GB",
+        descKey: "popularGeneral",
+        releasedAt: "2023-12-22",
+      },
     ],
     moreUrl: "https://huggingface.co/models?search=mlx-community%2FMistral",
   },
 ]);
 
-const OLLAMA_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
-  {
-    brand: "qwen",
-    labelKey: "onlineBrands.qwen",
-    versions: [
-      { id: "qwen3.5:35b", label: "Qwen 3.5 35B", size: "~24GB", descKey: "topRated", releasedAt: "2026-02-26" },
-      { id: "qwen3.5:27b", label: "Qwen 3.5 27B", size: "~17GB", descKey: "higherQuality", releasedAt: "2026-02-27" },
-      { id: "qwen3.5:122b", label: "Qwen 3.5 122B", size: "~81GB", descKey: "popularGeneral", releasedAt: "2026-02-25" },
-    ],
-    moreUrl: "https://ollama.com/library/qwen3.5",
-  },
-  {
-    brand: "gemma",
-    labelKey: "onlineBrands.gemma",
-    versions: [
-      { id: "gemma4:31b", label: "Gemma 4 31B", size: "~20GB", descKey: "topRated", releasedAt: "2026-04-03" },
-      { id: "gemma4:26b", label: "Gemma 4 26B", size: "~18GB", descKey: "higherQuality", releasedAt: "2026-04-03" },
-      { id: "gemma4:e4b", label: "Gemma 4 E4B", size: "~9.6GB", descKey: "balanced", releasedAt: "2026-04-03" },
-    ],
-    moreUrl: "https://ollama.com/library/gemma4",
-  },
-  {
-    brand: "deepseek",
-    labelKey: "onlineBrands.deepseek",
-    versions: [
-      { id: "deepseek-r1:14b", label: "DeepSeek R1 14B", size: "~9GB", descKey: "topRated", releasedAt: "2025-05-28" },
-      { id: "deepseek-r1:8b", label: "DeepSeek R1 8B (0528)", size: "~5GB", descKey: "reasoningGeneral", releasedAt: "2025-05-28" },
-      { id: "deepseek-r1:7b", label: "DeepSeek R1 7B", size: "~4.7GB", descKey: "reasoning", releasedAt: "2025-01-20" },
-      { id: "deepseek-r1:1.5b", label: "DeepSeek R1 1.5B", size: "~1.1GB", descKey: "reasoningLight", releasedAt: "2025-01-20" },
-    ],
-    moreUrl: "https://ollama.com/library/deepseek-r1",
-  },
-  {
-    brand: "glm",
-    labelKey: "onlineBrands.glm",
-    versions: [
-      { id: "glm-4.7-flash", label: "GLM 4.7 Flash", size: "~19GB", descKey: "topRated", releasedAt: "2026-01-19" },
-    ],
-    moreUrl: "https://ollama.com/library/glm-4.7-flash",
-  },
-  {
-    brand: "llama",
-    labelKey: "onlineBrands.llama",
-    versions: [
-      { id: "llama4:scout", label: "Llama 4 Scout", size: "~67GB", descKey: "topRated", releasedAt: "2025-04-05" },
-      { id: "llama4:maverick", label: "Llama 4 Maverick", size: "~245GB", descKey: "higherQuality", releasedAt: "2025-04-05" },
-    ],
-    moreUrl: "https://ollama.com/library/llama4",
-  },
-  {
-    brand: "gptoss",
-    labelKey: "onlineBrands.gptoss",
-    versions: [
-      { id: "gpt-oss:latest", label: "gpt-oss Latest", size: "~14GB", descKey: "topRated", releasedAt: "2025-10-01" },
-      { id: "gpt-oss:20b", label: "gpt-oss 20B", size: "~14GB", descKey: "openaiFamily", releasedAt: "2025-10-01" },
-    ],
-    moreUrl: "https://ollama.com/library/gpt-oss",
-  },
-  {
-    brand: "mistral",
-    labelKey: "onlineBrands.mistral",
-    versions: [
-      { id: "mistral-small3.2:latest", label: "Mistral Small 3.2", size: "~24GB", descKey: "higherQuality", releasedAt: "2025-07-10" },
-      { id: "mistral-nemo:latest", label: "Mistral Nemo 12B", size: "~7GB", descKey: "balanced", releasedAt: "2024-07-18" },
-      { id: "mistral:latest", label: "Mistral 7B", size: "~4.1GB", descKey: "popularGeneral", releasedAt: "2023-12-10" },
-    ],
-    moreUrl: "https://ollama.com/search?q=mistral",
-  },
-]);
+const OLLAMA_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease(
+  [
+    {
+      brand: "qwen",
+      labelKey: "onlineBrands.qwen",
+      versions: [
+        {
+          id: "qwen3.5:35b",
+          label: "Qwen 3.5 35B",
+          size: "~24GB",
+          descKey: "topRated",
+          releasedAt: "2026-02-26",
+        },
+        {
+          id: "qwen3.5:27b",
+          label: "Qwen 3.5 27B",
+          size: "~17GB",
+          descKey: "higherQuality",
+          releasedAt: "2026-02-27",
+        },
+        {
+          id: "qwen3.5:122b",
+          label: "Qwen 3.5 122B",
+          size: "~81GB",
+          descKey: "popularGeneral",
+          releasedAt: "2026-02-25",
+        },
+      ],
+      moreUrl: "https://ollama.com/library/qwen3.5",
+    },
+    {
+      brand: "gemma",
+      labelKey: "onlineBrands.gemma",
+      versions: [
+        {
+          id: "gemma4:31b",
+          label: "Gemma 4 31B",
+          size: "~20GB",
+          descKey: "topRated",
+          releasedAt: "2026-04-03",
+        },
+        {
+          id: "gemma4:26b",
+          label: "Gemma 4 26B",
+          size: "~18GB",
+          descKey: "higherQuality",
+          releasedAt: "2026-04-03",
+        },
+        {
+          id: "gemma4:e4b",
+          label: "Gemma 4 E4B",
+          size: "~9.6GB",
+          descKey: "balanced",
+          releasedAt: "2026-04-03",
+        },
+      ],
+      moreUrl: "https://ollama.com/library/gemma4",
+    },
+    {
+      brand: "deepseek",
+      labelKey: "onlineBrands.deepseek",
+      versions: [
+        {
+          id: "deepseek-r1:14b",
+          label: "DeepSeek R1 14B",
+          size: "~9GB",
+          descKey: "topRated",
+          releasedAt: "2025-05-28",
+        },
+        {
+          id: "deepseek-r1:8b",
+          label: "DeepSeek R1 8B (0528)",
+          size: "~5GB",
+          descKey: "reasoningGeneral",
+          releasedAt: "2025-05-28",
+        },
+        {
+          id: "deepseek-r1:7b",
+          label: "DeepSeek R1 7B",
+          size: "~4.7GB",
+          descKey: "reasoning",
+          releasedAt: "2025-01-20",
+        },
+        {
+          id: "deepseek-r1:1.5b",
+          label: "DeepSeek R1 1.5B",
+          size: "~1.1GB",
+          descKey: "reasoningLight",
+          releasedAt: "2025-01-20",
+        },
+      ],
+      moreUrl: "https://ollama.com/library/deepseek-r1",
+    },
+    {
+      brand: "glm",
+      labelKey: "onlineBrands.glm",
+      versions: [
+        {
+          id: "glm-4.7-flash",
+          label: "GLM 4.7 Flash",
+          size: "~19GB",
+          descKey: "topRated",
+          releasedAt: "2026-01-19",
+        },
+      ],
+      moreUrl: "https://ollama.com/library/glm-4.7-flash",
+    },
+    {
+      brand: "llama",
+      labelKey: "onlineBrands.llama",
+      versions: [
+        {
+          id: "llama4:scout",
+          label: "Llama 4 Scout",
+          size: "~67GB",
+          descKey: "topRated",
+          releasedAt: "2025-04-05",
+        },
+        {
+          id: "llama4:maverick",
+          label: "Llama 4 Maverick",
+          size: "~245GB",
+          descKey: "higherQuality",
+          releasedAt: "2025-04-05",
+        },
+      ],
+      moreUrl: "https://ollama.com/library/llama4",
+    },
+    {
+      brand: "gptoss",
+      labelKey: "onlineBrands.gptoss",
+      versions: [
+        {
+          id: "gpt-oss:latest",
+          label: "gpt-oss Latest",
+          size: "~14GB",
+          descKey: "topRated",
+          releasedAt: "2025-10-01",
+        },
+        {
+          id: "gpt-oss:20b",
+          label: "gpt-oss 20B",
+          size: "~14GB",
+          descKey: "openaiFamily",
+          releasedAt: "2025-10-01",
+        },
+      ],
+      moreUrl: "https://ollama.com/library/gpt-oss",
+    },
+    {
+      brand: "mistral",
+      labelKey: "onlineBrands.mistral",
+      versions: [
+        {
+          id: "mistral-small3.2:latest",
+          label: "Mistral Small 3.2",
+          size: "~24GB",
+          descKey: "higherQuality",
+          releasedAt: "2025-07-10",
+        },
+        {
+          id: "mistral-nemo:latest",
+          label: "Mistral Nemo 12B",
+          size: "~7GB",
+          descKey: "balanced",
+          releasedAt: "2024-07-18",
+        },
+        {
+          id: "mistral:latest",
+          label: "Mistral 7B",
+          size: "~4.1GB",
+          descKey: "popularGeneral",
+          releasedAt: "2023-12-10",
+        },
+      ],
+      moreUrl: "https://ollama.com/search?q=mistral",
+    },
+  ],
+);
 
 interface OllamaModelInfo {
   name: string;
@@ -225,7 +455,10 @@ function normalizeOllamaModelName(name: string): string {
   return name.endsWith(":latest") ? name.slice(0, -":latest".length) : name;
 }
 
-function isOllamaModelVisibleToDaemon(modelName: string, daemonModels: OllamaModelInfo[]): boolean {
+function isOllamaModelVisibleToDaemon(
+  modelName: string,
+  daemonModels: OllamaModelInfo[],
+): boolean {
   const target = normalizeOllamaModelName(modelName);
   return daemonModels.some((m) => normalizeOllamaModelName(m.name) === target);
 }
@@ -233,13 +466,24 @@ function isOllamaModelVisibleToDaemon(modelName: string, daemonModels: OllamaMod
 const HF_DOWNLOAD_LINKS = [
   { labelKey: "hfLinks.official", url: "https://huggingface.co/mlx-community" },
   { labelKey: "hfLinks.mirror", url: "https://hf-mirror.com/mlx-community" },
-  { labelKey: "hfLinks.modelscope", url: "https://modelscope.cn/models?nameContains=mlx" },
-  { labelKey: "hfLinks.allModels", url: "https://huggingface.co/mlx-community/models" },
+  {
+    labelKey: "hfLinks.modelscope",
+    url: "https://modelscope.cn/models?nameContains=mlx",
+  },
+  {
+    labelKey: "hfLinks.allModels",
+    url: "https://huggingface.co/mlx-community/models",
+  },
 ];
 
-function isSourceUsableInMode(source: string, mode: ModelSelectorMode, dataprepSource?: string): boolean {
+function isSourceUsableInMode(
+  source: string,
+  mode: ModelSelectorMode,
+  dataprepSource?: string,
+): boolean {
   if (mode === "dataprep") return source === (dataprepSource || "ollama");
-  if (mode === "training") return source !== "ollama" && source !== "lmstudio" && source !== "trained";
+  if (mode === "training")
+    return source !== "ollama" && source !== "lmstudio" && source !== "trained";
   if (mode === "export") return source === "trained";
   return true;
 }
@@ -251,41 +495,65 @@ function isModelUsable(
   daemonModels: OllamaModelInfo[],
   dataprepSource?: string,
 ): boolean {
-  if (mode === "training") return source !== "ollama" && source !== "lmstudio" && source !== "trained";
+  if (mode === "training")
+    return source !== "ollama" && source !== "lmstudio" && source !== "trained";
   if (mode === "dataprep") {
     const target = dataprepSource || "ollama";
     if (source !== target) return false;
-    if (target === "ollama") return isOllamaModelVisibleToDaemon(modelName, daemonModels);
+    if (target === "ollama")
+      return isOllamaModelVisibleToDaemon(modelName, daemonModels);
     return true; // lmstudio models are always usable
   }
   if (mode === "export") return source === "trained";
   return true;
 }
 
-function getDisabledReasonKey(source: string, mode: ModelSelectorMode, daemonVisible: boolean, dataprepSource?: string): string {
+function getDisabledReasonKey(
+  source: string,
+  mode: ModelSelectorMode,
+  daemonVisible: boolean,
+  dataprepSource?: string,
+): string {
   if (mode === "training") {
-    if (source === "ollama" || source === "lmstudio") return "modelSelector.disabledReason.ollamaNoLora";
-    if (source === "trained") return "modelSelector.disabledReason.trainedNotBase";
+    if (source === "ollama" || source === "lmstudio")
+      return "modelSelector.disabledReason.ollamaNoLora";
+    if (source === "trained")
+      return "modelSelector.disabledReason.trainedNotBase";
   }
   if (mode === "dataprep") {
     const target = dataprepSource || "ollama";
-    if (source === "trained") return "modelSelector.disabledReason.adapterNoGen";
-    if (source !== target) return target === "lmstudio" ? "modelSelector.disabledReason.lmstudioOnly" : "modelSelector.disabledReason.ollamaOnly";
-    if (target === "ollama" && !daemonVisible) return "modelSelector.disabledReason.notInDaemon";
+    if (source === "trained")
+      return "modelSelector.disabledReason.adapterNoGen";
+    if (source !== target)
+      return target === "lmstudio"
+        ? "modelSelector.disabledReason.lmstudioOnly"
+        : "modelSelector.disabledReason.ollamaOnly";
+    if (target === "ollama" && !daemonVisible)
+      return "modelSelector.disabledReason.notInDaemon";
   }
   if (mode === "export") {
-    if (source !== "trained") return "modelSelector.disabledReason.selectAdapter";
+    if (source !== "trained")
+      return "modelSelector.disabledReason.selectAdapter";
   }
   return "";
 }
 
-export function ModelSelector({ mode, selectedModel, onSelect, disabled, projectId, onSelectAdapter, defaultOpen, source: dataprepSource }: Props) {
+export function ModelSelector({
+  mode,
+  selectedModel,
+  onSelect,
+  disabled,
+  projectId,
+  onSelectAdapter,
+  defaultOpen,
+  source: dataprepSource,
+}: Props) {
   const { t } = useTranslation("common");
   const navigate = useNavigate();
   const sourceLabel = (s: string) => {
     const key = `modelSelector.sourceLabels.${s}`;
     const translated = t(key);
-    return translated === key ? (SOURCE_LABELS_STATIC[s] || s) : translated;
+    return translated === key ? SOURCE_LABELS_STATIC[s] || s : translated;
   };
   const [allModels, setAllModels] = useState<LocalModelInfo[]>([]);
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
@@ -294,9 +562,15 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
   const [loading, setLoading] = useState(false);
   const [localLoaded, setLocalLoaded] = useState(false);
   const [ollamaLoaded, setOllamaLoaded] = useState(false);
-  const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
-  const [expandedHfBrands, setExpandedHfBrands] = useState<Set<string>>(new Set());
-  const [expandedOllamaBrands, setExpandedOllamaBrands] = useState<Set<string>>(new Set());
+  const [expandedSources, setExpandedSources] = useState<Set<string>>(
+    new Set(),
+  );
+  const [expandedHfBrands, setExpandedHfBrands] = useState<Set<string>>(
+    new Set(),
+  );
+  const [expandedOllamaBrands, setExpandedOllamaBrands] = useState<Set<string>>(
+    new Set(),
+  );
   const [showOnline, setShowOnline] = useState(false);
   const [showPanel, setShowPanel] = useState(!!defaultOpen);
 
@@ -326,13 +600,19 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
     try {
       const cfg = await invoke<{ hf_source: string }>("get_app_config");
       const src = cfg.hf_source;
-      const valid = src === "huggingface" || src === "hf-mirror" || src === "modelscope";
+      const valid =
+        src === "huggingface" || src === "hf-mirror" || src === "modelscope";
       setHfSource(valid ? src : "huggingface");
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const loadAdapters = useCallback(async () => {
-    if (!projectId) { setAdapters([]); return; }
+    if (!projectId) {
+      setAdapters([]);
+      return;
+    }
     try {
       const list = await invoke<AdapterInfo[]>("list_adapters", { projectId });
       setAdapters(list.filter((a) => a.has_weights));
@@ -346,18 +626,23 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
     loadOllamaModels();
     if (mode === "training") loadHfSource();
   }, [loadModels, loadOllamaModels, loadHfSource, mode]);
-  useEffect(() => { if (mode === "export") loadAdapters(); }, [loadAdapters, mode]);
+  useEffect(() => {
+    if (mode === "export") loadAdapters();
+  }, [loadAdapters, mode]);
 
   // Auto-refresh local/Ollama model lists after an export completes.
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
     const setup = async () => {
-      unlisten = await listen<{ project_id?: string }>("export:complete", (e) => {
-        const pid = e.payload?.project_id;
-        if (projectId && pid && pid !== projectId) return;
-        loadModels();
-        loadOllamaModels();
-      });
+      unlisten = await listen<{ project_id?: string }>(
+        "export:complete",
+        (e) => {
+          const pid = e.payload?.project_id;
+          if (projectId && pid && pid !== projectId) return;
+          loadModels();
+          loadOllamaModels();
+        },
+      );
     };
     setup();
     return () => {
@@ -384,26 +669,35 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
   // In training/dataprep they cannot be used directly and would confuse users.
   const combinedModels: LocalModelInfo[] = [
     ...allModels,
-    ...(mode === "export" ? adapters.map((a) => ({
-      name: `${a.base_model || a.name} \u2192 ${a.created}`,
-      path: a.path,
-      size_mb: 0,
-      is_mlx: true,
-      source: "trained",
-    })) : []),
+    ...(mode === "export"
+      ? adapters.map((a) => ({
+          name: `${a.base_model || a.name} \u2192 ${a.created}`,
+          path: a.path,
+          size_mb: 0,
+          is_mlx: true,
+          source: "trained",
+        }))
+      : []),
   ];
 
   // Group by source
-  const grouped = combinedModels.reduce<Record<string, LocalModelInfo[]>>((acc, m) => {
-    if (!acc[m.source]) acc[m.source] = [];
-    acc[m.source].push(m);
-    return acc;
-  }, {});
+  const grouped = combinedModels.reduce<Record<string, LocalModelInfo[]>>(
+    (acc, m) => {
+      if (!acc[m.source]) acc[m.source] = [];
+      acc[m.source].push(m);
+      return acc;
+    },
+    {},
+  );
 
   // Sort sources: most usable models first
   const sortedSources = Object.keys(grouped).sort((a, b) => {
-    const usableA = grouped[a].filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource)).length;
-    const usableB = grouped[b].filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource)).length;
+    const usableA = grouped[a].filter((m) =>
+      isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource),
+    ).length;
+    const usableB = grouped[b].filter((m) =>
+      isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource),
+    ).length;
     return usableB - usableA;
   });
 
@@ -413,7 +707,11 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
 
   // Check if an Ollama model is installed (match by prefix, e.g. "llama3.2:3b" matches "llama3.2:3b-instruct-...")
   const isOllamaInstalled = (modelId: string) =>
-    ollamaModels.some((m) => m.name === modelId || m.name.startsWith(modelId.split(":")[0] + ":" + modelId.split(":")[1]));
+    ollamaModels.some(
+      (m) =>
+        m.name === modelId ||
+        m.name.startsWith(modelId.split(":")[0] + ":" + modelId.split(":")[1]),
+    );
 
   const toggleSource = (source: string) => {
     setExpandedSources((prev) => {
@@ -430,7 +728,8 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
             if (!header || !container) return;
             const containerRect = container.getBoundingClientRect();
             const headerRect = header.getBoundingClientRect();
-            const relativeTop = headerRect.top - containerRect.top + container.scrollTop;
+            const relativeTop =
+              headerRect.top - containerRect.top + container.scrollTop;
             container.scrollTo({ top: relativeTop - 4, behavior: "smooth" });
           });
         });
@@ -463,7 +762,9 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
       // Find the first source that has usable models
       const best = sortedSources.find((source) => {
         const models = grouped[source] || [];
-        return models.some((m) => isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource));
+        return models.some((m) =>
+          isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource),
+        );
       });
       if (best) setExpandedSources(new Set([best]));
     }
@@ -478,9 +779,13 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
   };
 
   // LM Studio server status
-  const [lmsStatus, setLmsStatus] = useState<"idle" | "checking" | "running" | "stopped">("idle");
+  const [lmsStatus, setLmsStatus] = useState<
+    "idle" | "checking" | "running" | "stopped"
+  >("idle");
   const [lmsModels, setLmsModels] = useState<string[]>([]);
-  const [lmsCheckResult, setLmsCheckResult] = useState<"idle" | "connected" | "failed">("idle");
+  const [lmsCheckResult, setLmsCheckResult] = useState<
+    "idle" | "connected" | "failed"
+  >("idle");
   const lmsCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const checkLmsServer = useCallback(async () => {
@@ -488,7 +793,11 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
     setLmsCheckResult("idle");
     if (lmsCheckTimerRef.current) clearTimeout(lmsCheckTimerRef.current);
     try {
-      const result = await invoke<{ running: boolean; models: string[]; error: string | null }>("check_lmstudio_server");
+      const result = await invoke<{
+        running: boolean;
+        models: string[];
+        error: string | null;
+      }>("check_lmstudio_server");
       if (result.running) {
         setLmsStatus("running");
         setLmsModels(result.models);
@@ -501,7 +810,10 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
       setLmsStatus("stopped");
       setLmsCheckResult("failed");
     }
-    lmsCheckTimerRef.current = setTimeout(() => setLmsCheckResult("idle"), 4000);
+    lmsCheckTimerRef.current = setTimeout(
+      () => setLmsCheckResult("idle"),
+      4000,
+    );
   }, []);
 
   const openLmsApp = useCallback(async () => {
@@ -535,15 +847,20 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
       const adapter = adapters.find((a) => a.path === m.path);
       if (adapter && onSelectAdapter) onSelectAdapter(adapter);
       onSelect(m.path);
-    } else if (mode === "training" && (m.source === "huggingface" || m.source === "modelscope")) {
+    } else if (
+      mode === "training" &&
+      (m.source === "huggingface" || m.source === "modelscope")
+    ) {
       onSelect(m.path, true);
     } else {
-      onSelect(m.name);  // No isLocalPath - scanned models are already validated
+      onSelect(m.name); // No isLocalPath - scanned models are already validated
     }
   };
 
   const totalModels = combinedModels.length;
-  const usableModels = combinedModels.filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource)).length;
+  const usableModels = combinedModels.filter((m) =>
+    isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource),
+  ).length;
 
   const autoOpenedRef = useRef(false);
   useEffect(() => {
@@ -557,7 +874,9 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
 
   // ── LM Studio unified panel (no tabs, no online button) ──────────────────
   if (mode === "dataprep" && dataprepSource === "lmstudio") {
-    const lmsLocalModels = combinedModels.filter((m) => m.source === "lmstudio");
+    const lmsLocalModels = combinedModels.filter(
+      (m) => m.source === "lmstudio",
+    );
     return (
       <div className="rounded-lg border border-border bg-background">
         {/* Header */}
@@ -576,12 +895,25 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
         <div className="p-3 space-y-3">
           {/* Model list or empty guide */}
           {loading ? (
-            <p className="py-4 text-center text-xs text-muted-foreground/60">{t("modelSelector.scanningModels")}</p>
+            <p className="py-4 text-center text-xs text-muted-foreground/60">
+              {t("modelSelector.scanningModels")}
+            </p>
           ) : lmsLocalModels.length > 0 ? (
-            <div ref={listRef} onScroll={handleListScroll} className="max-h-64 space-y-1 overflow-y-auto overflow-x-hidden log-scroll-container">
+            <div
+              ref={listRef}
+              onScroll={handleListScroll}
+              className="max-h-64 space-y-1 overflow-y-auto overflow-x-hidden log-scroll-container"
+            >
               {lmsLocalModels.map((m) => {
-                const usable = isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource);
-                const isSelected = selectedModel === m.name || selectedModel === m.path;
+                const usable = isModelUsable(
+                  m.source,
+                  mode,
+                  m.name,
+                  ollamaModels,
+                  dataprepSource,
+                );
+                const isSelected =
+                  selectedModel === m.name || selectedModel === m.path;
                 return (
                   <button
                     key={m.path + m.name}
@@ -591,8 +923,8 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                       isSelected
                         ? "border-primary bg-primary/10 text-foreground"
                         : usable
-                        ? "border-border text-muted-foreground hover:bg-accent"
-                        : "border-border/50 text-muted-foreground/40 cursor-not-allowed"
+                          ? "border-border text-muted-foreground hover:bg-accent"
+                          : "border-border/50 text-muted-foreground/40 cursor-not-allowed"
                     }`}
                   >
                     {isSelected ? (
@@ -600,11 +932,21 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                         <span className="h-2 w-2 rounded-full bg-primary" />
                       </span>
                     ) : (
-                      <span className={`h-4 w-4 shrink-0 rounded-full border-2 ${usable ? "border-muted-foreground/30" : "border-muted-foreground/15"}`} />
+                      <span
+                        className={`h-4 w-4 shrink-0 rounded-full border-2 ${usable ? "border-muted-foreground/30" : "border-muted-foreground/15"}`}
+                      />
                     )}
-                    <span className={`flex-1 min-w-0 truncate font-medium ${usable ? "text-foreground" : "text-muted-foreground/40"}`}>{m.name}</span>
+                    <span
+                      className={`flex-1 min-w-0 truncate font-medium ${usable ? "text-foreground" : "text-muted-foreground/40"}`}
+                    >
+                      {m.name}
+                    </span>
                     <span className="ml-2 shrink-0 text-muted-foreground/70">
-                      {m.size_mb > 1024 ? `${(m.size_mb / 1024).toFixed(1)} GB` : m.size_mb > 0 ? `${m.size_mb} MB` : ""}
+                      {m.size_mb > 1024
+                        ? `${(m.size_mb / 1024).toFixed(1)} GB`
+                        : m.size_mb > 0
+                          ? `${m.size_mb} MB`
+                          : ""}
                     </span>
                   </button>
                 );
@@ -612,11 +954,19 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
             </div>
           ) : (
             <div className="space-y-2 py-1">
-              <p className="text-xs text-muted-foreground">{t("modelSelector.lmstudioOnlineHint")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("modelSelector.lmstudioOnlineHint")}
+              </p>
               <div className="space-y-1.5 pl-1">
-                <p className="text-[11px] text-muted-foreground/80">{t("modelSelector.lmstudioStep1")}</p>
-                <p className="text-[11px] text-muted-foreground/80">{t("modelSelector.lmstudioStep2")}</p>
-                <p className="text-[11px] text-muted-foreground/80">{t("modelSelector.lmstudioStep3")}</p>
+                <p className="text-[11px] text-muted-foreground/80">
+                  {t("modelSelector.lmstudioStep1")}
+                </p>
+                <p className="text-[11px] text-muted-foreground/80">
+                  {t("modelSelector.lmstudioStep2")}
+                </p>
+                <p className="text-[11px] text-muted-foreground/80">
+                  {t("modelSelector.lmstudioStep3")}
+                </p>
               </div>
             </div>
           )}
@@ -631,14 +981,17 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
               {t("modelSelector.lmstudioOpenApp")}
             </button>
             <button
-              onClick={() => { checkLmsServer(); loadModels(); }}
+              onClick={() => {
+                checkLmsServer();
+                loadModels();
+              }}
               disabled={lmsStatus === "checking" || loading}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
                 lmsCheckResult === "connected"
                   ? "border-success/40 bg-success/10 text-success hover:bg-success/15"
                   : lmsCheckResult === "failed"
-                  ? "border-amber-500/40 bg-amber-500/8 text-amber-500 hover:bg-amber-500/12"
-                  : "border-border text-muted-foreground hover:bg-accent"
+                    ? "border-amber-500/40 bg-amber-500/8 text-amber-500 hover:bg-amber-500/12"
+                    : "border-border text-muted-foreground hover:bg-accent"
               }`}
             >
               {lmsStatus === "checking" ? (
@@ -653,10 +1006,10 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
               {lmsStatus === "checking"
                 ? t("modelSelector.lmstudioChecking")
                 : lmsCheckResult === "connected"
-                ? t("modelSelector.lmstudioConnectedBtn")
-                : lmsCheckResult === "failed"
-                ? t("modelSelector.lmstudioNotConnectedBtn")
-                : t("modelSelector.lmstudioCheckServer")}
+                  ? t("modelSelector.lmstudioConnectedBtn")
+                  : lmsCheckResult === "failed"
+                    ? t("modelSelector.lmstudioNotConnectedBtn")
+                    : t("modelSelector.lmstudioCheckServer")}
             </button>
           </div>
         </div>
@@ -670,7 +1023,14 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
       {/* Toggle Panel Button */}
       <div className="flex gap-2">
         <button
-          onClick={() => { if (showPanel && !showOnline) { setShowPanel(false); } else { setShowPanel(true); setShowOnline(false); } }}
+          onClick={() => {
+            if (showPanel && !showOnline) {
+              setShowPanel(false);
+            } else {
+              setShowPanel(true);
+              setShowOnline(false);
+            }
+          }}
           disabled={disabled}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2.5 text-xs font-medium transition-colors disabled:opacity-50 ${
             showPanel && !showOnline
@@ -678,11 +1038,22 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
               : "border-border text-muted-foreground hover:bg-accent"
           }`}
         >
-          {showPanel && !showOnline ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          {showPanel && !showOnline ? (
+            <ChevronDown size={12} />
+          ) : (
+            <ChevronRight size={12} />
+          )}
           {t("modelSelector.selectExisting")}
         </button>
         <button
-          onClick={() => { if (showPanel && showOnline) { setShowPanel(false); } else { setShowPanel(true); setShowOnline(true); } }}
+          onClick={() => {
+            if (showPanel && showOnline) {
+              setShowPanel(false);
+            } else {
+              setShowPanel(true);
+              setShowOnline(true);
+            }
+          }}
           disabled={disabled}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2.5 text-xs font-medium transition-colors disabled:opacity-50 ${
             showPanel && showOnline
@@ -714,7 +1085,9 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
               <button
                 onClick={() => setShowOnline(false)}
                 className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors ${
-                  !showOnline ? "border-b-2 border-primary text-foreground" : "text-muted-foreground hover:text-foreground"
+                  !showOnline
+                    ? "border-b-2 border-primary text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <HardDrive size={12} />
@@ -723,7 +1096,9 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
               <button
                 onClick={() => setShowOnline(true)}
                 className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors ${
-                  showOnline ? "border-b-2 border-primary text-foreground" : "text-muted-foreground hover:text-foreground"
+                  showOnline
+                    ? "border-b-2 border-primary text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <Download size={12} />
@@ -731,7 +1106,12 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
               </button>
             </div>
             <button
-              onClick={() => invoke("open_model_cache", { source: mode === "dataprep" ? (dataprepSource || "ollama") : null })}
+              onClick={() =>
+                invoke("open_model_cache", {
+                  source:
+                    mode === "dataprep" ? dataprepSource || "ollama" : null,
+                })
+              }
               className="flex items-center gap-1 shrink-0 text-xs text-muted-foreground hover:text-foreground"
               title={t("modelSelector.modelCacheDir")}
             >
@@ -746,126 +1126,233 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">
-                    {t("modelSelector.scanStatus", { total: totalModels, usable: usableModels })}
+                    {t("modelSelector.scanStatus", {
+                      total: totalModels,
+                      usable: usableModels,
+                    })}
                   </p>
                   <button
-                    onClick={() => { loadModels(); loadAdapters(); loadOllamaModels(); }}
+                    onClick={() => {
+                      loadModels();
+                      loadAdapters();
+                      loadOllamaModels();
+                    }}
                     disabled={loading}
                     className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
                   >
-                    <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
-                    {loading ? t("modelSelector.scanning") : t("modelSelector.refresh")}
+                    <RefreshCw
+                      size={10}
+                      className={loading ? "animate-spin" : ""}
+                    />
+                    {loading
+                      ? t("modelSelector.scanning")
+                      : t("modelSelector.refresh")}
                   </button>
                 </div>
 
                 {totalModels === 0 ? (
                   <div className="py-6 text-center">
                     <p className="text-xs text-muted-foreground/70">
-                      {loading ? t("modelSelector.scanningModels") : t("modelSelector.noModelsFound")}
+                      {loading
+                        ? t("modelSelector.scanningModels")
+                        : t("modelSelector.noModelsFound")}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground/50">
                       {t("modelSelector.noModelsHint")}
                     </p>
                   </div>
                 ) : (
-                  <div ref={listRef} onScroll={handleListScroll} className="max-h-64 space-y-1 overflow-y-auto overflow-x-hidden log-scroll-container">
-                    {sortedSources.filter((source) => isSourceUsableInMode(source, mode, dataprepSource)).map((source) => {
-                      const models = grouped[source];
-                      const expanded = expandedSources.has(source);
-                      const usableCount = models.filter((m) => isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource)).length;
-                      return (
-                        <div key={source}>
-                          {/* Source Header */}
-                          <div
-                            ref={(el) => { if (el) sourceHeaderRefs.current.set(source, el); }}
-                            className="flex items-center justify-between rounded-md px-2 py-1.5"
-                          >
-                            <button
-                              onClick={() => toggleSource(source)}
-                              className="flex items-center gap-2 text-xs font-medium text-foreground transition-colors hover:bg-accent rounded-md px-1 py-0.5"
+                  <div
+                    ref={listRef}
+                    onScroll={handleListScroll}
+                    className="max-h-64 space-y-1 overflow-y-auto overflow-x-hidden log-scroll-container"
+                  >
+                    {sortedSources
+                      .filter((source) =>
+                        isSourceUsableInMode(source, mode, dataprepSource),
+                      )
+                      .map((source) => {
+                        const models = grouped[source];
+                        const expanded = expandedSources.has(source);
+                        const usableCount = models.filter((m) =>
+                          isModelUsable(
+                            m.source,
+                            mode,
+                            m.name,
+                            ollamaModels,
+                            dataprepSource,
+                          ),
+                        ).length;
+                        return (
+                          <div key={source}>
+                            {/* Source Header */}
+                            <div
+                              ref={(el) => {
+                                if (el)
+                                  sourceHeaderRefs.current.set(source, el);
+                              }}
+                              className="flex items-center justify-between rounded-md px-2 py-1.5"
                             >
-                              {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                              <span className={`rounded px-1.5 py-0.5 text-[10px] ${
-                                (source === "ollama" || source === "huggingface" || source === "lmstudio")
-                                  ? (usableCount > 0 ? (SOURCE_COLORS[source] || "text-sky-400/90 bg-sky-400/10") : "text-orange-400/90 bg-orange-400/10")
-                                  : (SOURCE_COLORS[source] || "bg-muted text-muted-foreground")
-                              }`}>
-                                {sourceLabel(source)}
-                              </span>
-                              <span className="text-muted-foreground">
-                                {usableCount > 0 ? t("modelSelector.usableCount", { count: usableCount }) : t("modelSelector.notUsable")}
-                                {usableCount < models.length && t("modelSelector.totalCount", { count: models.length })}
-                              </span>
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); openSourceFolder(source); }}
-                              className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
-                              title={t("modelSelector.openFolderTitle", { source: sourceLabel(source) })}
-                            >
-                              <FolderOpen size={10} />
-                              {t("modelSelector.openFolder")}
-                            </button>
-                          </div>
-
-                          {/* Models List */}
-                          {expanded && (
-                            <div className="space-y-0.5 overflow-x-hidden">
-                              {models.map((m) => {
-                                const daemonVisible = isOllamaModelVisibleToDaemon(m.name, ollamaModels);
-                                const usable = isModelUsable(m.source, mode, m.name, ollamaModels, dataprepSource);
-                                const isSelected = selectedModel === m.name || selectedModel === m.path;
-                                const reasonKey = getDisabledReasonKey(m.source, mode, daemonVisible, dataprepSource);
-                                const reason = reasonKey ? t(reasonKey) : "";
-                                return (
-                                  <button
-                                    key={m.path + m.name}
-                                    onClick={() => usable && handleSelectModel(m)}
-                                    disabled={!usable || disabled}
-                                    className={`flex w-full min-w-0 items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors ${
-                                      isSelected
-                                        ? "border-primary bg-primary/10 text-foreground"
-                                        : usable
-                                        ? "border-border text-muted-foreground hover:bg-accent"
-                                        : "border-border/50 text-muted-foreground/40 cursor-not-allowed"
-                                    }`}
-                                    title={reason || m.name}
-                                  >
-                                    {/* Radio indicator */}
-                                    {isSelected ? (
-                                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span>
-                                    ) : (
-                                      <span className={`h-4 w-4 shrink-0 rounded-full border-2 ${usable ? "border-muted-foreground/30" : "border-muted-foreground/15"}`} />
-                                    )}
-                                    <div className="min-w-0 flex-1 overflow-hidden">
-                                      {m.source === "trained" ? (() => {
-                                        const parts = m.name.split(" \u2192 ");
-                                        return (
-                                          <>
-                                            <div className={`text-xs font-medium leading-snug ${usable ? "text-foreground" : "text-muted-foreground/40"}`}>{parts[0]}</div>
-                                            {parts[1] && <div className={`text-[10px] leading-snug mt-0.5 ${usable ? "text-muted-foreground/60" : "text-muted-foreground/30"}`}>{parts[1]}</div>}
-                                          </>
-                                        );
-                                      })() : (
-                                        <span className={`font-medium ${usable ? "text-foreground" : "text-muted-foreground/40"}`}>{m.name}</span>
-                                      )}
-                                      {m.is_mlx && m.source !== "trained" && (
-                                        <span className="ml-1.5 rounded bg-tag-mlx/15 px-1 py-0.5 text-[10px] text-tag-mlx">MLX</span>
-                                      )}
-                                      {!usable && reason && (
-                                        <span className="ml-1.5 text-[10px] text-muted-foreground/40">({reason})</span>
-                                      )}
-                                    </div>
-                                    <span className={`ml-2 shrink-0 ${usable ? "text-muted-foreground/70" : "text-muted-foreground/30"}`}>
-                                      {m.size_mb > 1024 ? `${(m.size_mb / 1024).toFixed(1)} GB` : m.size_mb > 0 ? `${m.size_mb} MB` : ""}
-                                    </span>
-                                  </button>
-                                );
-                              })}
+                              <button
+                                onClick={() => toggleSource(source)}
+                                className="flex items-center gap-2 text-xs font-medium text-foreground transition-colors hover:bg-accent rounded-md px-1 py-0.5"
+                              >
+                                {expanded ? (
+                                  <ChevronDown size={12} />
+                                ) : (
+                                  <ChevronRight size={12} />
+                                )}
+                                <span
+                                  className={`rounded px-1.5 py-0.5 text-[10px] ${
+                                    source === "ollama" ||
+                                    source === "huggingface" ||
+                                    source === "lmstudio"
+                                      ? usableCount > 0
+                                        ? SOURCE_COLORS[source] ||
+                                          "text-sky-400/90 bg-sky-400/10"
+                                        : "text-orange-400/90 bg-orange-400/10"
+                                      : SOURCE_COLORS[source] ||
+                                        "bg-muted text-muted-foreground"
+                                  }`}
+                                >
+                                  {sourceLabel(source)}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {usableCount > 0
+                                    ? t("modelSelector.usableCount", {
+                                        count: usableCount,
+                                      })
+                                    : t("modelSelector.notUsable")}
+                                  {usableCount < models.length &&
+                                    t("modelSelector.totalCount", {
+                                      count: models.length,
+                                    })}
+                                </span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openSourceFolder(source);
+                                }}
+                                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                                title={t("modelSelector.openFolderTitle", {
+                                  source: sourceLabel(source),
+                                })}
+                              >
+                                <FolderOpen size={10} />
+                                {t("modelSelector.openFolder")}
+                              </button>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+
+                            {/* Models List */}
+                            {expanded && (
+                              <div className="space-y-0.5 overflow-x-hidden">
+                                {models.map((m) => {
+                                  const daemonVisible =
+                                    isOllamaModelVisibleToDaemon(
+                                      m.name,
+                                      ollamaModels,
+                                    );
+                                  const usable = isModelUsable(
+                                    m.source,
+                                    mode,
+                                    m.name,
+                                    ollamaModels,
+                                    dataprepSource,
+                                  );
+                                  const isSelected =
+                                    selectedModel === m.name ||
+                                    selectedModel === m.path;
+                                  const reasonKey = getDisabledReasonKey(
+                                    m.source,
+                                    mode,
+                                    daemonVisible,
+                                    dataprepSource,
+                                  );
+                                  const reason = reasonKey ? t(reasonKey) : "";
+                                  return (
+                                    <button
+                                      key={m.path + m.name}
+                                      onClick={() =>
+                                        usable && handleSelectModel(m)
+                                      }
+                                      disabled={!usable || disabled}
+                                      className={`flex w-full min-w-0 items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors ${
+                                        isSelected
+                                          ? "border-primary bg-primary/10 text-foreground"
+                                          : usable
+                                            ? "border-border text-muted-foreground hover:bg-accent"
+                                            : "border-border/50 text-muted-foreground/40 cursor-not-allowed"
+                                      }`}
+                                      title={reason || m.name}
+                                    >
+                                      {/* Radio indicator */}
+                                      {isSelected ? (
+                                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary">
+                                          <span className="h-2 w-2 rounded-full bg-primary" />
+                                        </span>
+                                      ) : (
+                                        <span
+                                          className={`h-4 w-4 shrink-0 rounded-full border-2 ${usable ? "border-muted-foreground/30" : "border-muted-foreground/15"}`}
+                                        />
+                                      )}
+                                      <div className="min-w-0 flex-1 overflow-hidden">
+                                        {m.source === "trained" ? (
+                                          (() => {
+                                            const parts =
+                                              m.name.split(" \u2192 ");
+                                            return (
+                                              <>
+                                                <div
+                                                  className={`text-xs font-medium leading-snug ${usable ? "text-foreground" : "text-muted-foreground/40"}`}
+                                                >
+                                                  {parts[0]}
+                                                </div>
+                                                {parts[1] && (
+                                                  <div
+                                                    className={`text-[10px] leading-snug mt-0.5 ${usable ? "text-muted-foreground/60" : "text-muted-foreground/30"}`}
+                                                  >
+                                                    {parts[1]}
+                                                  </div>
+                                                )}
+                                              </>
+                                            );
+                                          })()
+                                        ) : (
+                                          <span
+                                            className={`font-medium ${usable ? "text-foreground" : "text-muted-foreground/40"}`}
+                                          >
+                                            {m.name}
+                                          </span>
+                                        )}
+                                        {m.is_mlx && m.source !== "trained" && (
+                                          <span className="ml-1.5 rounded bg-tag-mlx/15 px-1 py-0.5 text-[10px] text-tag-mlx">
+                                            MLX
+                                          </span>
+                                        )}
+                                        {!usable && reason && (
+                                          <span className="ml-1.5 text-[10px] text-muted-foreground/40">
+                                            ({reason})
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span
+                                        className={`ml-2 shrink-0 ${usable ? "text-muted-foreground/70" : "text-muted-foreground/30"}`}
+                                      >
+                                        {m.size_mb > 1024
+                                          ? `${(m.size_mb / 1024).toFixed(1)} GB`
+                                          : m.size_mb > 0
+                                            ? `${m.size_mb} MB`
+                                            : ""}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
               </div>
@@ -876,15 +1363,20 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                   /* --- DataPrep + LM Studio: interactive setup card --- */
                   <div className="space-y-3">
                     {/* Server status indicator */}
-                    <div className={`flex items-center gap-2 rounded-md border px-3 py-2 text-xs ${
-                      lmsStatus === "running"
-                        ? "border-success/30 bg-success/5 text-success"
-                        : lmsStatus === "stopped"
-                        ? "border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-400"
-                        : "border-border bg-background/50 text-muted-foreground"
-                    }`}>
+                    <div
+                      className={`flex items-center gap-2 rounded-md border px-3 py-2 text-xs ${
+                        lmsStatus === "running"
+                          ? "border-success/30 bg-success/5 text-success"
+                          : lmsStatus === "stopped"
+                            ? "border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+                            : "border-border bg-background/50 text-muted-foreground"
+                      }`}
+                    >
                       {lmsStatus === "checking" ? (
-                        <RefreshCw size={12} className="animate-spin shrink-0" />
+                        <RefreshCw
+                          size={12}
+                          className="animate-spin shrink-0"
+                        />
                       ) : lmsStatus === "running" ? (
                         <Wifi size={12} className="shrink-0" />
                       ) : (
@@ -894,20 +1386,28 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                         {lmsStatus === "checking"
                           ? t("modelSelector.lmstudioChecking")
                           : lmsStatus === "running"
-                          ? `${t("modelSelector.lmstudioServerRunning")} · ${t("modelSelector.lmstudioServerModels", { count: lmsModels.length })}`
-                          : lmsStatus === "stopped"
-                          ? t("modelSelector.lmstudioServerStopped")
-                          : t("modelSelector.lmstudioOnlineHint")}
+                            ? `${t("modelSelector.lmstudioServerRunning")} · ${t("modelSelector.lmstudioServerModels", { count: lmsModels.length })}`
+                            : lmsStatus === "stopped"
+                              ? t("modelSelector.lmstudioServerStopped")
+                              : t("modelSelector.lmstudioOnlineHint")}
                       </span>
                     </div>
 
                     {/* Step-by-step guide */}
                     <div className="rounded-lg border border-border bg-card/30 p-3 space-y-2">
-                      <p className="text-xs font-medium text-foreground">{t("modelSelector.lmstudioOnlineHint")}</p>
+                      <p className="text-xs font-medium text-foreground">
+                        {t("modelSelector.lmstudioOnlineHint")}
+                      </p>
                       <div className="space-y-1">
-                        <p className="text-[11px] text-muted-foreground">{t("modelSelector.lmstudioStep1")}</p>
-                        <p className="text-[11px] text-muted-foreground">{t("modelSelector.lmstudioStep2")}</p>
-                        <p className="text-[11px] text-muted-foreground">{t("modelSelector.lmstudioStep3")}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {t("modelSelector.lmstudioStep1")}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {t("modelSelector.lmstudioStep2")}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {t("modelSelector.lmstudioStep3")}
+                        </p>
                       </div>
                     </div>
 
@@ -949,11 +1449,15 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                             }`}
                           >
                             {selectedModel === m ? (
-                              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span>
+                              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary">
+                                <span className="h-2 w-2 rounded-full bg-primary" />
+                              </span>
                             ) : (
                               <span className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/30" />
                             )}
-                            <span className="font-medium text-foreground truncate">{m}</span>
+                            <span className="font-medium text-foreground truncate">
+                              {m}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -971,19 +1475,33 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                       {OLLAMA_ONLINE_GROUPS.map((group) => {
                         const expanded = expandedOllamaBrands.has(group.brand);
                         return (
-                          <div key={group.brand} className="rounded-md border border-border/60">
+                          <div
+                            key={group.brand}
+                            className="rounded-md border border-border/60"
+                          >
                             <div
                               onClick={() => toggleOllamaBrand(group.brand)}
                               className="flex cursor-pointer items-center justify-between px-2 py-1.5 transition-colors hover:bg-accent/50 rounded-t-md"
                             >
                               <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-                                {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                                <span>{t(`modelSelector.${group.labelKey}`)}</span>
-                                <span className="text-[10px] text-muted-foreground">{group.versions.length}</span>
+                                {expanded ? (
+                                  <ChevronDown size={12} />
+                                ) : (
+                                  <ChevronRight size={12} />
+                                )}
+                                <span>
+                                  {t(`modelSelector.${group.labelKey}`)}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {group.versions.length}
+                                </span>
                               </div>
                               {group.moreUrl && (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); openUrl(group.moreUrl!); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openUrl(group.moreUrl!);
+                                  }}
                                   className="text-[10px] text-primary hover:underline"
                                 >
                                   {t("modelSelector.more")}
@@ -1008,13 +1526,21 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                                       }`}
                                     >
                                       {isSelected ? (
-                                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span>
+                                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary">
+                                          <span className="h-2 w-2 rounded-full bg-primary" />
+                                        </span>
                                       ) : (
                                         <span className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/30" />
                                       )}
                                       <div className="min-w-0 flex-1">
-                                        <span className="font-medium text-foreground">{m.label}</span>
-                                        <span className="ml-1.5 text-muted-foreground/50">{t(`modelSelector.modelDesc.${m.descKey}`)}</span>
+                                        <span className="font-medium text-foreground">
+                                          {m.label}
+                                        </span>
+                                        <span className="ml-1.5 text-muted-foreground/50">
+                                          {t(
+                                            `modelSelector.modelDesc.${m.descKey}`,
+                                          )}
+                                        </span>
                                       </div>
                                       <div className="flex items-center gap-1.5 shrink-0">
                                         {downloaded && (
@@ -1023,7 +1549,9 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                                             {t("modelSelector.downloaded")}
                                           </span>
                                         )}
-                                        <span className="font-mono text-muted-foreground/70">{m.size}</span>
+                                        <span className="font-mono text-muted-foreground/70">
+                                          {m.size}
+                                        </span>
                                       </div>
                                     </button>
                                   );
@@ -1040,13 +1568,22 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                   <>
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-muted-foreground">
-                        {t("modelSelector.downloadFrom", { source: t(`modelSelector.source${hfSource === "hf-mirror" ? "HfMirror" : hfSource === "modelscope" ? "Modelscope" : "Huggingface"}`) })}
+                        {t("modelSelector.downloadFrom", {
+                          source: t(
+                            `modelSelector.source${hfSource === "hf-mirror" ? "HfMirror" : hfSource === "modelscope" ? "Modelscope" : "Huggingface"}`,
+                          ),
+                        })}
                       </p>
                     </div>
                     {hfSource === "modelscope" && (
                       <p className="text-xs text-tag-hf/80 rounded-md bg-tag-hf/10 border border-tag-hf/20 px-3 py-2">
                         ⚠ {t("modelSelector.modelscopeWarnInline")}
-                        <button onClick={navigateToSettings} className="underline mx-0.5">{t("modelSelector.settingsLink")}</button>
+                        <button
+                          onClick={navigateToSettings}
+                          className="underline mx-0.5"
+                        >
+                          {t("modelSelector.settingsLink")}
+                        </button>
                         {t("modelSelector.modelscopeWarnSuffix")}
                       </p>
                     )}
@@ -1056,19 +1593,33 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                         const expanded = expandedHfBrands.has(group.brand);
                         const unavailable = hfSource === "modelscope";
                         return (
-                          <div key={group.brand} className="rounded-md border border-border/60">
+                          <div
+                            key={group.brand}
+                            className="rounded-md border border-border/60"
+                          >
                             <div
                               onClick={() => toggleHfBrand(group.brand)}
                               className="flex cursor-pointer items-center justify-between px-2 py-1.5 transition-colors hover:bg-accent/50 rounded-t-md"
                             >
                               <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-                                {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                                <span>{t(`modelSelector.${group.labelKey}`)}</span>
-                                <span className="text-[10px] text-muted-foreground">{group.versions.length}</span>
+                                {expanded ? (
+                                  <ChevronDown size={12} />
+                                ) : (
+                                  <ChevronRight size={12} />
+                                )}
+                                <span>
+                                  {t(`modelSelector.${group.labelKey}`)}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {group.versions.length}
+                                </span>
                               </div>
                               {group.moreUrl && (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); openUrl(group.moreUrl!); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openUrl(group.moreUrl!);
+                                  }}
                                   className="text-[10px] text-primary hover:underline"
                                 >
                                   {t("modelSelector.more")}
@@ -1084,26 +1635,50 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                                   return (
                                     <button
                                       key={m.id}
-                                      onClick={() => !unavailable && onSelect(m.id)}
+                                      onClick={() =>
+                                        !unavailable && onSelect(m.id)
+                                      }
                                       disabled={disabled || unavailable}
                                       className={`flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors disabled:opacity-50 ${
                                         unavailable
                                           ? "border-border/50 text-muted-foreground/40 cursor-not-allowed"
                                           : isSelected
-                                          ? "border-primary bg-primary/10 text-foreground"
-                                          : "border-border text-muted-foreground hover:bg-accent"
+                                            ? "border-primary bg-primary/10 text-foreground"
+                                            : "border-border text-muted-foreground hover:bg-accent"
                                       }`}
                                     >
                                       {isSelected && !unavailable ? (
-                                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary"><span className="h-2 w-2 rounded-full bg-primary" /></span>
+                                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-primary">
+                                          <span className="h-2 w-2 rounded-full bg-primary" />
+                                        </span>
                                       ) : (
-                                        <span className={`h-4 w-4 shrink-0 rounded-full border-2 ${unavailable ? "border-muted-foreground/15" : "border-muted-foreground/30"}`} />
+                                        <span
+                                          className={`h-4 w-4 shrink-0 rounded-full border-2 ${unavailable ? "border-muted-foreground/15" : "border-muted-foreground/30"}`}
+                                        />
                                       )}
                                       <div className="min-w-0 flex-1">
-                                        <span className={`font-medium ${unavailable ? "text-muted-foreground/40" : "text-foreground"}`}>{m.label}</span>
-                                        <span className={`ml-1.5 rounded px-1 py-0.5 text-[10px] ${unavailable ? "bg-tag-mlx/5 text-tag-mlx/40" : "bg-tag-mlx/15 text-tag-mlx"}`}>MLX</span>
-                                        <span className="ml-1 text-muted-foreground/50">{t(`modelSelector.modelDesc.${m.descKey}`)}</span>
-                                        {unavailable && <span className="ml-1 text-[10px] text-muted-foreground/40">{t("modelSelector.unavailableSource")}</span>}
+                                        <span
+                                          className={`font-medium ${unavailable ? "text-muted-foreground/40" : "text-foreground"}`}
+                                        >
+                                          {m.label}
+                                        </span>
+                                        <span
+                                          className={`ml-1.5 rounded px-1 py-0.5 text-[10px] ${unavailable ? "bg-tag-mlx/5 text-tag-mlx/40" : "bg-tag-mlx/15 text-tag-mlx"}`}
+                                        >
+                                          MLX
+                                        </span>
+                                        <span className="ml-1 text-muted-foreground/50">
+                                          {t(
+                                            `modelSelector.modelDesc.${m.descKey}`,
+                                          )}
+                                        </span>
+                                        {unavailable && (
+                                          <span className="ml-1 text-[10px] text-muted-foreground/40">
+                                            {t(
+                                              "modelSelector.unavailableSource",
+                                            )}
+                                          </span>
+                                        )}
                                       </div>
                                       <div className="flex items-center gap-1.5 shrink-0">
                                         {downloaded && (
@@ -1112,7 +1687,9 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                                             {t("modelSelector.downloaded")}
                                           </span>
                                         )}
-                                        <span className="font-mono text-muted-foreground/70">{m.size}</span>
+                                        <span className="font-mono text-muted-foreground/70">
+                                          {m.size}
+                                        </span>
                                       </div>
                                     </button>
                                   );
@@ -1126,7 +1703,12 @@ export function ModelSelector({ mode, selectedModel, onSelect, disabled, project
                     <div className="space-y-2 border-t border-border pt-2">
                       <p className="text-xs text-muted-foreground/60">
                         {t("modelSelector.mlxHint")}
-                        <button onClick={navigateToSettings} className="underline mx-0.5 text-primary/70">{t("modelSelector.settingsLink")}</button>
+                        <button
+                          onClick={navigateToSettings}
+                          className="underline mx-0.5 text-primary/70"
+                        >
+                          {t("modelSelector.settingsLink")}
+                        </button>
                         {t("modelSelector.mlxHintSuffix")}
                       </p>
                       <div className="flex flex-wrap gap-1.5">

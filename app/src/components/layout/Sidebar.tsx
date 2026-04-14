@@ -23,7 +23,9 @@ export function Sidebar() {
 
   const hasProject = !!currentProject;
   const projectSubPaths = ["/data-prep", "/training", "/testing", "/export"];
-  const isInProjectSection = projectSubPaths.includes(location.pathname) || location.pathname === "/projects";
+  const isInProjectSection =
+    projectSubPaths.includes(location.pathname) ||
+    location.pathname === "/projects";
 
   const toggleLanguage = () => {
     const next = i18n.language === "zh-CN" ? "en" : "zh-CN";
@@ -57,7 +59,14 @@ export function Sidebar() {
               : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
           }`}
         >
-          <LayoutDashboard size={18} className={location.pathname === "/" ? "text-primary" : "text-muted-foreground group-hover:text-foreground"} />
+          <LayoutDashboard
+            size={18}
+            className={
+              location.pathname === "/"
+                ? "text-primary"
+                : "text-muted-foreground group-hover:text-foreground"
+            }
+          />
           <span>{t("dashboard")}</span>
         </button>
 
@@ -71,13 +80,21 @@ export function Sidebar() {
                 : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
             }`}
           >
-            <FolderOpen size={18} className={isInProjectSection ? "text-primary" : "text-muted-foreground group-hover:text-foreground"} />
+            <FolderOpen
+              size={18}
+              className={
+                isInProjectSection
+                  ? "text-primary"
+                  : "text-muted-foreground group-hover:text-foreground"
+              }
+            />
             <span className="flex-1 text-left">{t("projects")}</span>
-            {projects.length > 0 && (
-              isInProjectSection
-                ? <ChevronDown size={14} className="text-muted-foreground/70" />
-                : <ChevronRight size={14} className="text-muted-foreground/70" />
-            )}
+            {projects.length > 0 &&
+              (isInProjectSection ? (
+                <ChevronDown size={14} className="text-muted-foreground/70" />
+              ) : (
+                <ChevronRight size={14} className="text-muted-foreground/70" />
+              ))}
           </button>
 
           {/* Current project indicator */}
@@ -96,14 +113,16 @@ export function Sidebar() {
                 return (
                   <button
                     key={item.key}
-                    onClick={() => { if (!isDisabled) navigate(item.path); }}
+                    onClick={() => {
+                      if (!isDisabled) navigate(item.path);
+                    }}
                     disabled={isDisabled}
                     className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all ${
                       isDisabled
                         ? "cursor-not-allowed opacity-40 grayscale"
                         : isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                     }`}
                   >
                     {item.icon}
@@ -126,7 +145,9 @@ export function Sidebar() {
           <span>{i18n.language === "zh-CN" ? "English" : "中文"}</span>
         </button>
         <button
-          onClick={() => navigate("/settings", { state: { from: location.pathname } })}
+          onClick={() =>
+            navigate("/settings", { state: { from: location.pathname } })
+          }
           className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
             location.pathname === "/settings"
               ? "bg-sidebar-accent text-sidebar-accent-foreground"
