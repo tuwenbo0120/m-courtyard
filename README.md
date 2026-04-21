@@ -41,7 +41,7 @@ M-Courtyard is a **desktop assistant** designed to demystify LLM fine-tuning. Fo
 - **Built-in Rules Mode**: Generate datasets without any external runtime when you prefer a fully self-contained workflow.
 
 ### Effortless Fine-tuning (LoRA)
-- **Unified Model Hub**: Auto-detect local HuggingFace / ModelScope / Ollama assets, or pull the latest models online (Qwen, DeepSeek, GLM, Llama, Mistral, etc.).
+- **Unified Model Hub**: Auto-detect local HuggingFace / ModelScope / Ollama assets, or pull the latest models online (Qwen, DeepSeek, GLM, Gemma, Llama, GPT-OSS, etc.).
 - **Live Visuals**: Real-time training loss charts, ETA, and resource monitoring.
 - **Presets**: 1-click configurations (Quick / Standard / Thorough) for different needs.
 

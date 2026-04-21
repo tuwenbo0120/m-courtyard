@@ -76,15 +76,18 @@ const SOURCE_COLORS: Record<string, string> = {
   lmstudio: "text-emerald-400/90 bg-emerald-400/10",
   trained: "text-tag-trained bg-tag-trained/15",
 };
+
 const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
   {
     brand: "qwen",
     labelKey: "onlineBrands.qwen",
     versions: [
-      { id: "mlx-community/Qwen3.5-35B-A3B-4bit", label: "Qwen 3.5 35B-A3B · 4-bit", size: "~24GB", descKey: "topRated", releasedAt: "2026-02-24" },
-      { id: "mlx-community/Qwen3.5-27B-4bit", label: "Qwen 3.5 27B · 4-bit", size: "~17GB", descKey: "higherQuality", releasedAt: "2026-02-24" },
+      { id: "mlx-community/Qwen3.6-35B-A3B-4bit-DWQ", label: "Qwen 3.6 35B-A3B · DWQ", size: "~24GB", descKey: "topRated", releasedAt: "2026-04-16" },
+      { id: "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit", label: "Qwen3 Coder 30B-A3B · 4-bit", size: "~20GB", descKey: "codeStrong", releasedAt: "2026-03-01" },
+      { id: "mlx-community/Qwen3.5-9B-OptiQ-4bit", label: "Qwen 3.5 9B · OptiQ", size: "~6GB", descKey: "higherQuality", releasedAt: "2026-02-20" },
+      { id: "mlx-community/Qwen3.5-4B-OptiQ-4bit", label: "Qwen 3.5 4B · OptiQ", size: "~3GB", descKey: "lightweight", releasedAt: "2026-02-20" },
     ],
-    moreUrl: "https://huggingface.co/models?search=mlx-community%2FQwen3.5",
+    moreUrl: "https://huggingface.co/models?search=mlx-community%2FQwen3.6",
   },
   {
     brand: "gemma",
@@ -111,38 +114,56 @@ const HF_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease([
     brand: "glm",
     labelKey: "onlineBrands.glm",
     versions: [
-      { id: "mlx-community/GLM-5-4bit", label: "GLM 5 · 4-bit", size: "744B params", descKey: "topRated", releasedAt: "2026-02-12" },
-      { id: "mlx-community/GLM-5-8bit-MXFP8", label: "GLM 5 · 8-bit MXFP8", size: "744B params", descKey: "higherQuality", releasedAt: "2026-02-12" },
+      { id: "mlx-community/GLM-4.7-Flash-4bit", label: "GLM 4.7 Flash · 4-bit", size: "~19GB", descKey: "topRated", releasedAt: "2026-01-19" },
+      { id: "mlx-community/GLM-4.7-Flash-8bit", label: "GLM 4.7 Flash · 8-bit", size: "~32GB", descKey: "higherQuality", releasedAt: "2026-01-19" },
+      { id: "mlx-community/GLM-4.5-Air-4bit", label: "GLM 4.5 Air · 4-bit", size: "~60GB", descKey: "balanced", releasedAt: "2025-11-15" },
+      { id: "mlx-community/GLM-4.5-Air-mxfp4", label: "GLM 4.5 Air · MXFP4", size: "~40GB", descKey: "higherQuality", releasedAt: "2025-12-01" },
     ],
-    moreUrl: "https://huggingface.co/models?search=mlx-community%2FGLM-5",
+    moreUrl: "https://huggingface.co/models?search=mlx-community%2FGLM-4.7-Flash",
   },
   {
-    brand: "llama",
-    labelKey: "onlineBrands.llama",
+    brand: "kimi",
+    labelKey: "onlineBrands.kimi",
     versions: [
-      { id: "mlx-community/Llama-4-Scout-17B-16E-Instruct-4bit", label: "Llama 4 Scout 17B · 4-bit", size: "~67GB", descKey: "topRated", releasedAt: "2025-04-05" },
-      { id: "mlx-community/meta-llama-Llama-4-Scout-17B-16E-4bit", label: "Llama 4 Scout 17B · 4-bit (Base)", size: "~67GB", descKey: "higherQuality", releasedAt: "2025-04-05" },
+      { id: "mlx-community/Kimi-Linear-48B-A3B-Instruct-3bit", label: "Kimi Linear 48B-A3B · 3-bit", size: "~22GB", descKey: "lightweight", releasedAt: "2026-01-22" },
+      { id: "mlx-community/Kimi-Linear-48B-A3B-Instruct-4bit", label: "Kimi Linear 48B-A3B · 4-bit", size: "~29GB", descKey: "topRated", releasedAt: "2026-01-22" },
+      { id: "mlx-community/Kimi-Linear-48B-A3B-Instruct-6bit", label: "Kimi Linear 48B-A3B · 6-bit", size: "~39GB", descKey: "higherQuality", releasedAt: "2026-01-22" },
+      { id: "mlx-community/Kimi-Linear-48B-A3B-Instruct-8bit", label: "Kimi Linear 48B-A3B · 8-bit", size: "~49GB", descKey: "higherQuality", releasedAt: "2026-01-22" },
     ],
-    moreUrl: "https://huggingface.co/models?search=mlx-community%2FLlama-4",
+    moreUrl: "https://huggingface.co/models?search=mlx-community%2FKimi-Linear-48B-A3B-Instruct",
+  },
+  {
+    brand: "gemma",
+    labelKey: "onlineBrands.gemma",
+    versions: [
+      { id: "mlx-community/gemma-4-e4b-it-OptiQ-4bit", label: "Gemma 4 E4B IT · OptiQ", size: "~10GB", descKey: "topRated", releasedAt: "2026-04-20" },
+      { id: "mlx-community/Gemma4-E2B-IT-Text-int4", label: "Gemma 4 E2B IT Text · int4", size: "~3GB", descKey: "lightweight", releasedAt: "2026-04-18" },
+      { id: "mlx-community/gemma-3n-E4B-it-lm-4bit", label: "Gemma 3n E4B IT · LM 4-bit", size: "~4GB", descKey: "balanced", releasedAt: "2025-10-01" },
+      { id: "mlx-community/gemma-3n-E2B-it-lm-4bit", label: "Gemma 3n E2B IT · LM 4-bit", size: "~2GB", descKey: "lightweight", releasedAt: "2025-10-01" },
+    ],
+    moreUrl: "https://huggingface.co/models?search=mlx-community%2Fgemma",
   },
   {
     brand: "gptoss",
     labelKey: "onlineBrands.gptoss",
     versions: [
-      { id: "mlx-community/gpt-oss-20b-MXFP4-Q8", label: "gpt-oss 20B · MXFP4 Q8", size: "~22GB", descKey: "topRated", releasedAt: "2025-08-10" },
-      { id: "mlx-community/gpt-oss-20b-MXFP4-Q4", label: "gpt-oss 20B · MXFP4 Q4", size: "~13GB", descKey: "openaiFamily", releasedAt: "2025-08-10" },
+      { id: "mlx-community/gpt-oss-20b-MXFP4-Q4", label: "gpt-oss 20B · MXFP4 Q4", size: "~13GB", descKey: "topRated", releasedAt: "2025-08-10" },
+      { id: "mlx-community/gpt-oss-20b-MXFP4-Q8", label: "gpt-oss 20B · MXFP4 Q8", size: "~22GB", descKey: "higherQuality", releasedAt: "2025-08-10" },
+      { id: "mlx-community/gpt-oss-120b-MXFP4-Q4", label: "gpt-oss 120B · MXFP4 Q4", size: "~65GB", descKey: "openaiFamily", releasedAt: "2025-08-10" },
+      { id: "mlx-community/gpt-oss-120b-MXFP4-Q8", label: "gpt-oss 120B · MXFP4 Q8", size: "~110GB", descKey: "higherQuality", releasedAt: "2025-08-10" },
     ],
     moreUrl: "https://huggingface.co/models?search=mlx-community%2Fgpt-oss",
   },
   {
-    brand: "mistral",
-    labelKey: "onlineBrands.mistral",
+    brand: "llama",
+    labelKey: "onlineBrands.llama",
     versions: [
-      { id: "mlx-community/mistralai_Ministral-3-14B-Instruct-2512-MLX-MXFP4", label: "Ministral 3 14B · MXFP4", size: "~8GB", descKey: "higherQuality", releasedAt: "2025-12-30" },
-      { id: "mlx-community/mistralai_Devstral-Small-2-24B-Instruct-2512-MLX-8Bit", label: "Devstral Small 24B · 8-bit", size: "~24GB", descKey: "codeStrong", releasedAt: "2025-12-14" },
-      { id: "mlx-community/Mistral-7B-Instruct-v0.2-4-bit", label: "Mistral 7B v0.2 · 4-bit", size: "~4.1GB", descKey: "popularGeneral", releasedAt: "2023-12-22" },
+      { id: "mlx-community/Llama-3.3-70B-Instruct-4bit", label: "Llama 3.3 70B Instruct · 4-bit", size: "~43GB", descKey: "topRated", releasedAt: "2025-01-05" },
+      { id: "mlx-community/Meta-Llama-3.1-70B-Instruct-4bit", label: "Llama 3.1 70B Instruct · 4-bit", size: "~43GB", descKey: "higherQuality", releasedAt: "2024-07-23" },
+      { id: "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit", label: "Llama 3.1 8B Instruct · 4-bit", size: "~4.9GB", descKey: "balanced", releasedAt: "2024-07-23" },
+      { id: "mlx-community/Meta-Llama-3-8B-Instruct-4bit", label: "Llama 3 8B Instruct · 4-bit", size: "~4.6GB", descKey: "popularGeneral", releasedAt: "2024-04-18" },
     ],
-    moreUrl: "https://huggingface.co/models?search=mlx-community%2FMistral",
+    moreUrl: "https://huggingface.co/models?search=mlx-community%2FLlama",
   },
 ]);
 
@@ -151,30 +172,21 @@ const OLLAMA_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease(
     brand: "qwen",
     labelKey: "onlineBrands.qwen",
     versions: [
-      { id: "qwen3.5:35b", label: "Qwen 3.5 35B", size: "~24GB", descKey: "topRated", releasedAt: "2026-02-26" },
-      { id: "qwen3.5:27b", label: "Qwen 3.5 27B", size: "~17GB", descKey: "higherQuality", releasedAt: "2026-02-27" },
-      { id: "qwen3.5:122b", label: "Qwen 3.5 122B", size: "~81GB", descKey: "popularGeneral", releasedAt: "2026-02-25" },
+      { id: "qwen3.6:35b", label: "Qwen 3.6 35B", size: "~24GB", descKey: "topRated", releasedAt: "2026-04-18" },
+      { id: "qwen3.6:35b-a3b-nvfp4", label: "Qwen 3.6 35B-A3B · NVFP4", size: "~22GB", descKey: "balanced", releasedAt: "2026-04-16" },
+      { id: "qwen3.6:35b-a3b-q8_0", label: "Qwen 3.6 35B-A3B · Q8_0", size: "~39GB", descKey: "higherQuality", releasedAt: "2026-04-16" },
+      { id: "qwen3.6:35b-a3b-bf16", label: "Qwen 3.6 35B-A3B · BF16", size: "~71GB", descKey: "higherQuality", releasedAt: "2026-04-16" },
     ],
-    moreUrl: "https://ollama.com/library/qwen3.5",
-  },
-  {
-    brand: "gemma",
-    labelKey: "onlineBrands.gemma",
-    versions: [
-      { id: "gemma4:31b", label: "Gemma 4 31B", size: "~20GB", descKey: "topRated", releasedAt: "2026-04-03" },
-      { id: "gemma4:26b", label: "Gemma 4 26B", size: "~18GB", descKey: "higherQuality", releasedAt: "2026-04-03" },
-      { id: "gemma4:e4b", label: "Gemma 4 E4B", size: "~9.6GB", descKey: "balanced", releasedAt: "2026-04-03" },
-    ],
-    moreUrl: "https://ollama.com/library/gemma4",
+    moreUrl: "https://ollama.com/library/qwen3.6",
   },
   {
     brand: "deepseek",
     labelKey: "onlineBrands.deepseek",
     versions: [
-      { id: "deepseek-r1:14b", label: "DeepSeek R1 14B", size: "~9GB", descKey: "topRated", releasedAt: "2025-05-28" },
-      { id: "deepseek-r1:8b", label: "DeepSeek R1 8B (0528)", size: "~5GB", descKey: "reasoningGeneral", releasedAt: "2025-05-28" },
-      { id: "deepseek-r1:7b", label: "DeepSeek R1 7B", size: "~4.7GB", descKey: "reasoning", releasedAt: "2025-01-20" },
-      { id: "deepseek-r1:1.5b", label: "DeepSeek R1 1.5B", size: "~1.1GB", descKey: "reasoningLight", releasedAt: "2025-01-20" },
+      { id: "deepseek-r1:8b", label: "DeepSeek R1 8B", size: "~5.2GB", descKey: "topRated", releasedAt: "2025-05-28" },
+      { id: "deepseek-r1:14b", label: "DeepSeek R1 14B", size: "~9GB", descKey: "reasoningGeneral", releasedAt: "2025-01-20" },
+      { id: "deepseek-r1:32b", label: "DeepSeek R1 32B", size: "~20GB", descKey: "higherQuality", releasedAt: "2025-01-20" },
+      { id: "deepseek-r1:70b", label: "DeepSeek R1 70B", size: "~43GB", descKey: "popularGeneral", releasedAt: "2025-01-20" },
     ],
     moreUrl: "https://ollama.com/library/deepseek-r1",
   },
@@ -182,18 +194,34 @@ const OLLAMA_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease(
     brand: "glm",
     labelKey: "onlineBrands.glm",
     versions: [
-      { id: "glm-4.7-flash", label: "GLM 4.7 Flash", size: "~19GB", descKey: "topRated", releasedAt: "2026-01-19" },
+      { id: "glm-4.7-flash:latest", label: "GLM 4.7 Flash", size: "~19GB", descKey: "topRated", releasedAt: "2026-02-20" },
+      { id: "glm-4.7-flash:q4_K_M", label: "GLM 4.7 Flash · Q4_K_M", size: "~19GB", descKey: "balanced", releasedAt: "2026-02-20" },
+      { id: "glm-4.7-flash:q8_0", label: "GLM 4.7 Flash · Q8_0", size: "~32GB", descKey: "higherQuality", releasedAt: "2026-02-20" },
+      { id: "glm-4.7-flash:bf16", label: "GLM 4.7 Flash · BF16", size: "~60GB", descKey: "higherQuality", releasedAt: "2026-02-20" },
     ],
     moreUrl: "https://ollama.com/library/glm-4.7-flash",
+  },
+  {
+    brand: "gemma",
+    labelKey: "onlineBrands.gemma",
+    versions: [
+      { id: "gemma4:e2b-nvfp4", label: "Gemma 4 E2B · NVFP4", size: "~7.1GB", descKey: "lightweight", releasedAt: "2026-04-14" },
+      { id: "gemma4:e4b-nvfp4", label: "Gemma 4 E4B · NVFP4", size: "~9.6GB", descKey: "topRated", releasedAt: "2026-04-14" },
+      { id: "gemma4:26b-nvfp4", label: "Gemma 4 26B · NVFP4", size: "~17GB", descKey: "balanced", releasedAt: "2026-04-16" },
+      { id: "gemma4:31b-mxfp8", label: "Gemma 4 31B · MXFP8", size: "~32GB", descKey: "higherQuality", releasedAt: "2026-04-14" },
+    ],
+    moreUrl: "https://ollama.com/library/gemma4",
   },
   {
     brand: "llama",
     labelKey: "onlineBrands.llama",
     versions: [
       { id: "llama4:scout", label: "Llama 4 Scout", size: "~67GB", descKey: "topRated", releasedAt: "2025-04-05" },
-      { id: "llama4:maverick", label: "Llama 4 Maverick", size: "~245GB", descKey: "higherQuality", releasedAt: "2025-04-05" },
+      { id: "llama3.3:70b-instruct-q2_K", label: "Llama 3.3 70B · Q2_K", size: "~26GB", descKey: "balanced", releasedAt: "2024-12-06" },
+      { id: "llama3.3:70b-instruct-q3_K_M", label: "Llama 3.3 70B · Q3_K_M", size: "~34GB", descKey: "higherQuality", releasedAt: "2024-12-06" },
+      { id: "llama3.3:70b-instruct-q5_K_M", label: "Llama 3.3 70B · Q5_K_M", size: "~50GB", descKey: "popularGeneral", releasedAt: "2024-12-06" },
     ],
-    moreUrl: "https://ollama.com/library/llama4",
+    moreUrl: "https://ollama.com/library/llama3.3",
   },
   {
     brand: "gptoss",
@@ -201,18 +229,9 @@ const OLLAMA_ONLINE_GROUPS: OnlineModelBrandGroup[] = sortOnlineGroupsByRelease(
     versions: [
       { id: "gpt-oss:latest", label: "gpt-oss Latest", size: "~14GB", descKey: "topRated", releasedAt: "2025-10-01" },
       { id: "gpt-oss:20b", label: "gpt-oss 20B", size: "~14GB", descKey: "openaiFamily", releasedAt: "2025-10-01" },
+      { id: "gpt-oss:120b", label: "gpt-oss 120B", size: "~65GB", descKey: "higherQuality", releasedAt: "2025-10-01" },
     ],
     moreUrl: "https://ollama.com/library/gpt-oss",
-  },
-  {
-    brand: "mistral",
-    labelKey: "onlineBrands.mistral",
-    versions: [
-      { id: "mistral-small3.2:latest", label: "Mistral Small 3.2", size: "~24GB", descKey: "higherQuality", releasedAt: "2025-07-10" },
-      { id: "mistral-nemo:latest", label: "Mistral Nemo 12B", size: "~7GB", descKey: "balanced", releasedAt: "2024-07-18" },
-      { id: "mistral:latest", label: "Mistral 7B", size: "~4.1GB", descKey: "popularGeneral", releasedAt: "2023-12-10" },
-    ],
-    moreUrl: "https://ollama.com/search?q=mistral",
   },
 ]);
 

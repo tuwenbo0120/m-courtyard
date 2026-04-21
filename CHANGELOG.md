@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-04-21
+
+### Changed
+- Refreshed the built-in online model recommendations for local workflows around currently used, locally downloadable model families: upgraded `Qwen` to current `Qwen 3.6` local picks, expanded `GLM`, `Gemma`, `Llama`, and `GPT-OSS` recommendations, kept `Kimi` on the MLX training side only, and removed `Phi` / `Mistral` from the curated online lists.
+- Updated app version, bundled metadata, Settings version display, and release materials to `0.5.5`.
+
 ## [0.5.4] - 2026-04-12
 
 ### Fixed
@@ -398,6 +404,9 @@ Delivers the **Batch Processing** cluster (PRD D-1 · D-2 · H-3): multi-file dr
 - **GitHub Actions CI**: Automated .dmg build and release on tag push
 - **Discord Integration**: Automated release notifications via webhook
 
+[0.5.5]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.5.5
+[0.5.4]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.5.4
+[0.5.3]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.5.3
 [0.5.2]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.5.2
 [0.5.1]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.5.1
 [0.5.0]: https://github.com/Mcourtyard/m-courtyard/releases/tag/v0.5.0
